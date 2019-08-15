@@ -10,7 +10,7 @@ from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
 from load_pics import load_jaffe
 
-model_folder = 'C:\\Users\\Cat\\Documents\\Labs\\abto_practice\\project\\models\\'
+model_folder = 'models\\'
 
 x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
 n_classes = np.unique(y_data).shape[0]
