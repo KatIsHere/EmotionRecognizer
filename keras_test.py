@@ -8,13 +8,16 @@ from keras.utils import np_utils
 from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
-from load_pics import load_jaffe
+from load_pics import load_jaffe, load_kanade
 
 model_folder = 'models\\'
+model_id = 'kanade'
+im_rows, im_cols = 490, 640
 
-x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
+#x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
+x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", (im_cols, im_rows))
 n_classes = np.unique(y_data).shape[0]
-im_rows, im_cols = x_data.shape[1], x_data.shape[2]
+#im_rows, im_cols = x_data.shape[1], x_data.shape[2]
 
 input_shape = (im_rows, im_cols, 1)
 
@@ -29,7 +32,7 @@ x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.
 model = Sequential()
 
 Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu')
-Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu')
+Conv2D(64, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu')
 BatchNormalization(epsilon=0.0001)
 MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same")
 
@@ -68,8 +71,8 @@ model.add(Dense(n_classes, activation = 'softmax'))
 # optimizing
 model.compile(loss = "categorical_crossentropy", optimizer = SGD(lr=0.001), metrics = ["accuracy"])
 # learning
-model.fit(x_train, y_train, batch_size = 16, callbacks = [ModelCheckpoint( model_folder + "model_v2.hdf5", monitor = "val_acc",      \
-            save_best_only = True, save_weights_only = False, mode = "auto")], epochs = 300,    \
+model.fit(x_train, y_train, batch_size = 16, callbacks = [ModelCheckpoint( model_folder + model_id + "model.hdf5", monitor = "val_acc",      \
+            save_best_only = True, save_weights_only = False, mode = "auto")], epochs = 100,    \
             verbose = 1, shuffle = True, validation_data = (x_test, y_test))
 # accuracy
 score = model.evaluate(x_test, y_test, verbose = 0)
@@ -78,8 +81,7 @@ print("Test accuracy :", score[1], "\n")
 
 # saving model to .json file
 model_json = model.to_json()
-with open(model_folder + "model_v2.json", 'w') as json_file:
+with open(model_folder + model_id + "model.json", 'w') as json_file:
     json_file.write(model_json)
 # saving weights to .hdf5 file
-model.save_weights(model_folder + "model_v2.h5")
-print("Model saved\n")
+model.save_weights(model_folder + model_id + "model.h5")
