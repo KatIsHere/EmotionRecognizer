@@ -1,0 +1,7 @@
+Python packages required:
+tensorflow
+keras
+opencv-python
+Pillow
+numpy
+sklearn
