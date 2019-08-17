@@ -101,8 +101,6 @@ class Emotion_Net:
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
     
 
-
-
 def train_kanade_model():
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_folder = 'models\\'
