@@ -1,33 +1,20 @@
 import glob
-from PIL import Image
 import cv2
 import numpy as np
 import os
 import re
 
-
-def load_jaffe(folder_dir, f_format, 
-                lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):
-    """ Loads jaffe dataset
-
-        in: 
-            * folder_dir - path to database
-            * f_format - images format
-
-        out: 
-            * an array of images and an array of image labes
-
-    Emotion formating(could be tuned though):
-      HAP SAD SUR ANG DIS FEA NET --> 0 1 2 3 4 5 6 """
-    assert isinstance(folder_dir, str) and isinstance(f_format, str) 
-    f_list = glob.glob(folder_dir + "/*." + f_format)
-    data = np.array([np.array(Image.open(fname)) for fname in f_list])
-    strt_ind = f_list[0].find('jaffe') + 9
-    labels = np.array([lbl_dict[fname[strt_ind : strt_ind + 2]] for fname in f_list])
-    return data, labels
-
-
 def load_img(im_path, greyscale=False, resize=False, new_size=None):
+    """
+        Loads an image
+
+        input: 
+            * im_path - path to the image
+            * greyscale - if true, loads image in greyscae format
+            * resize - if true resizes image to new_size
+        output:
+            * numpy array representing image
+    """
     flag = cv2.IMREAD_GRAYSCALE if greyscale else cv2.IMREAD_UNCHANGED 
     img = cv2.imread(im_path, flag)
 
@@ -36,6 +23,29 @@ def load_img(im_path, greyscale=False, resize=False, new_size=None):
         img = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
 
     return img
+
+
+def load_jaffe(folder_dir, f_format, greyscale=False,
+                lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):
+    """ Loads jaffe dataset
+
+        input: 
+            * folder_dir - path to database
+            * f_format - images format
+            * greyscale - if True load images in greyscale;   
+            * lbl_dict - labels interpritator
+
+        output: 
+            * an array of images and an array of image labes
+
+    Emotion formating(could be tuned though):
+      HAP SAD SUR ANG DIS FEA NET --> 0 1 2 3 4 5 6 """
+    assert isinstance(folder_dir, str) and isinstance(f_format, str) 
+    f_list = glob.glob(folder_dir + "/*." + f_format)
+    data = np.array([load_img(fname, greyscale=greyscale) for fname in f_list])
+    strt_ind = f_list[0].find('jaffe') + 9
+    labels = np.array([lbl_dict[fname[strt_ind : strt_ind + 2]] for fname in f_list])
+    return data, labels
 
 
 def load_kanade(img_folder_dir, label_folder_dir, new_im_size, file_format='png', load_grey=True):
