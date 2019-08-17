@@ -52,7 +52,7 @@ class Emotion_Net:
 
 
     def train(self, x_train, y_train, x_test, y_test, 
-                    batch_size=16, n_epochs=100, loss_func="categorical_crossentropy", 
+                    batch_size=16, n_epochs=50, loss_func="categorical_crossentropy", 
                     optim=SGD(lr=0.001), save_best=True, save_best_to="model.hdf5"):
         """Compile and train the model"""
 

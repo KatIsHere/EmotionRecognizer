@@ -90,7 +90,6 @@ class Emotion_Net:
             opt = optim.Adam(self._model.parameters(), lr=0.005)
         best_accuracy = 0.0
         for epoch in range(n_epochs): 
-        
             for i, data in enumerate(trainloader, 0):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 
@@ -123,4 +122,10 @@ class Emotion_Net:
                         if save_best and best_accuracy < accuracy:
                             best_accuracy = accuracy
                             torch.save(self._model, save_best_path)
+
+    def save_model(self, path):
+        torch.save(self._model, path)
+
+    def load_model(self, path):
+        self._model = torch.load(path)
                     
