@@ -79,8 +79,8 @@ class Net(nn.Module):
 
 class Emotion_Net:
     def __init__(self, n_classes, im_channels, batch_size=32):
-        self._model = Net(n_classes, im_channels, batch_size)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self._model = Net(n_classes, im_channels, batch_size).to(self.device)
 
     def train(self, trainloader, testloader, n_epochs=50, 
                 optimizer='adam', save_best=False, save_best_path=''):
@@ -95,6 +95,7 @@ class Emotion_Net:
                 
                 # data is already transposed
                 #inputs = inputs.transpose(1, 3)
+
                 opt.zero_grad()
                 
                 outputs = self._model(inputs.float()) 
@@ -104,24 +105,29 @@ class Emotion_Net:
                 
                 #loss_trace.append(loss.item())
                 running_loss += loss.item()
-                if i % 100 == 99:  
-                    print('[%d, %5d] loss: %.3f' %
-                        (epoch + 1, i + 1, running_loss / 100))
-                    running_loss = 0.0
-                    with torch.no_grad():
-                        for data in testloader:
-                            images, labels = data[0].to(self.device), data[1].to(self.device)
-                            images = images.transpose(1, 3)
-                            outputs = self._model(images.float())
-                            _, predicted = torch.max(outputs.data, 1)
-                            total += labels.size(0)
-                            correct += (predicted == labels).sum().item()
-                        accuracy = correct / total
-                        print('Accuracy of the network on the 10000 test images: %d %%' % (
+
+                # if i % 100 == 99:  
+                #     print('[%d, %5d] loss: %.3f' %
+                #         (epoch + 1, i + 1, running_loss / 100))
+                #     running_loss = 0.0
+        with torch.no_grad():
+            total = 0.0
+            correct = 0.0
+            for data in testloader:
+                images, labels = data[0].to(self.device), data[1].to(self.device)
+
+                images = images.transpose(1, 3)
+
+                outputs = self._model(images.float())
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                accuracy = correct / total
+                print('Accuracy of the network on the 10000 test images: %d %%' % (
                                 100 * accuracy))
-                        if save_best and best_accuracy < accuracy:
-                            best_accuracy = accuracy
-                            torch.save(self._model, save_best_path)
+                if save_best and best_accuracy < accuracy:
+                    best_accuracy = accuracy
+                    torch.save(self._model, save_best_path)
 
     def save_model(self, path):
         torch.save(self._model, path)

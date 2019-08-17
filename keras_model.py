@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from keras.models import Sequential, model_from_json
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPool2D, MaxPooling2D
@@ -22,7 +22,7 @@ class Emotion_Net:
         #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(128, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization(epsilon=0.0001))
         self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
@@ -38,7 +38,7 @@ class Emotion_Net:
 
         #self._model.add(Dropout(0.3)
 
-        self._model.add(Conv2D(512, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization(epsilon=0.0001))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
@@ -101,11 +101,10 @@ class Emotion_Net:
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
     
 
-def train_kanade_model():
+def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
-    model_folder = 'models\\'
-    model_id = 'kanade'
-    im_rows, im_cols = 490, 640
+    model_id = 'kanade_'
+    (im_rows, im_cols) = (490, 640)
 
     #x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
     x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", (im_cols, im_rows))
@@ -120,10 +119,14 @@ def train_kanade_model():
     y_data = np_utils.to_categorical(y_data, n_classes)
     x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, 1)
 
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.15, random_state=47)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=47)
 
     Model = Emotion_Net(input_shape, n_classes)
-    Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5")
+    Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
+                batch_size=64, n_epochs=300, optim=Adam(lr=0.001))
     Model.evaluate_accur(x_test, y_test)
     Model.save_model(model_folder + model_id + "model.json")
     Model.save_weights(model_folder + model_id + "model.h5")
+
+
+train_kanade_model()
