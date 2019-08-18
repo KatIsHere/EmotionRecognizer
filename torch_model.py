@@ -189,8 +189,7 @@ def train_kanade_model(model_folder = 'models\\'):
     # Model = Emotion_Net(n_classes, 1, 32)
     # Model.train(x_train, y_train, x_test, y_test, save_best_path=model_folder, n_epochs=300, im_transposed=True)
     # #Model.evaluate_accur(x_test, y_test)
-    # Model.save_model(model_folder + model_id + "model.json")
-    #Model.save_weights(model_folder + model_id + "model.h5")
+    # Model.save_model(model_folder + model_id + "model")
 
 
 train_kanade_model()

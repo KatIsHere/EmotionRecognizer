@@ -9,11 +9,15 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
 from load_pics import load_jaffe, load_kanade
+from face_detector import cut_out_faces_from_im, faces_from_database
 
 class Emotion_Net:
 
     def __init__(self, input_shape, n_classes):
         self._model = Sequential()
+        self.__arcitecture_2(input_shape, n_classes)
+
+    def __arcitecture_1(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(Conv2D(64, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization(epsilon=0.0001))
@@ -47,6 +51,49 @@ class Emotion_Net:
         self._model.add(Dense(1024, activation = "relu"))
         self._model.add(Dropout(0.3))     # reg
         self._model.add(Dense(2048, activation = "relu"))
+        self._model.add(Dropout(0.5))     # reg
+        self._model.add(Dense(n_classes, activation = 'softmax'))
+
+
+    def __arcitecture_2(self, input_shape, n_classes):
+
+        self._model.add(Conv2D(64, (7, 7), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        #self._model.add(Conv2D(64, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())       
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))        
+        
+        self._model.add(Conv2D(128, (5, 5), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
+
+        #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
+
+        self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+
+        #self._model.add(Dropout(0.4))
+
+        self._model.add(Conv2D(256, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+
+        #self._model.add(Dropout(0.3)
+
+        #self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        #self._model.add(BatchNormalization(epsilon=0.0001))
+        #self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+
+        # tensor reforming 
+        self._model.add(Flatten())
+        self._model.add(Dense(1024, activation = "relu"))
+        self._model.add(Dropout(0.5))     # reg
+        self._model.add(Dense(512, activation = "relu"))
         self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(n_classes, activation = 'softmax'))
 
@@ -100,14 +147,17 @@ class Emotion_Net:
         self._model = model_from_json(model_json)
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
     
-
+# TODO: model doesn't work, need to cut out faces first
 def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_id = 'kanade_'
-    (im_rows, im_cols) = (490, 640)
+    #(im_rows, im_cols) = (490//2, 640//2)
+    (im_rows, im_cols) = (400, 400)
 
     #x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
-    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", (im_cols, im_rows))
+    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", resize=False)
+    x_data = faces_from_database(x_data, (im_rows, im_cols))
+    x_data = np.array(x_data)
     n_classes = np.unique(y_data).shape[0]
     #im_rows, im_cols = x_data.shape[1], x_data.shape[2]
 
@@ -119,11 +169,11 @@ def train_kanade_model(model_folder = 'models\\'):
     y_data = np_utils.to_categorical(y_data, n_classes)
     x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, 1)
 
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=47)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
 
     Model = Emotion_Net(input_shape, n_classes)
     Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                batch_size=64, n_epochs=300, optim=Adam(lr=0.001))
+                batch_size=16, n_epochs=300, optim=SGD(lr=0.001))
     Model.evaluate_accur(x_test, y_test)
     Model.save_model(model_folder + model_id + "model.json")
     Model.save_weights(model_folder + model_id + "model.h5")

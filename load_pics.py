@@ -48,7 +48,7 @@ def load_jaffe(folder_dir, f_format, greyscale=False,
     return data, labels
 
 
-def load_kanade(img_folder_dir, label_folder_dir, new_im_size, file_format='png', load_grey=True):
+def load_kanade(img_folder_dir, label_folder_dir, resize, new_im_size = None, file_format='png', load_grey=True):
     """ Loads kanade dataset
 
         in: 
@@ -77,11 +77,11 @@ def load_kanade(img_folder_dir, label_folder_dir, new_im_size, file_format='png'
                 pic_file = file.replace('_emotion.txt', "." + file_format)
                 pic_root = root.replace(label_folder_dir, img_folder_dir)
                 pics_path = os.path.join(pic_root, pic_file)
-                pics.append(load_img(pics_path, load_grey, True, new_im_size))
+                pics.append(load_img(pics_path, load_grey, resize, new_im_size))
 
                 with open(labeled_pics_path, 'r') as lbl:
                     labeles.append(float(lbl.read()[:-1]) - 1.0)
-    return np.array(pics), np.array(labeles).astype('int32')
+    return pics, np.array(labeles).astype('int32')
     
     
 
