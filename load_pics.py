@@ -15,7 +15,7 @@ def load_img(im_path, greyscale=False, resize=False, new_size=None):
         output:
             * numpy array representing image
     """
-    flag = cv2.IMREAD_GRAYSCALE if greyscale else cv2.IMREAD_UNCHANGED 
+    flag = cv2.IMREAD_GRAYSCALE if greyscale else cv2.IMREAD_COLOR 
     img = cv2.imread(im_path, flag)
 
     if resize:

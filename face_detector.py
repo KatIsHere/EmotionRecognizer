@@ -1,15 +1,11 @@
 import cv2
 import numpy as np
 
-# TODO: this is a pretty bag crunch, need to find a workaround
-path_to_haar = "C:\\ProgramData\\Miniconda3\\envs\\tf-gpu\\Lib\\site-packages\\cv2\\data\\"
-
 def load_haar_cascade(face = True):
-    global path_to_haar
     if face:
-        cascades = cv2.CascadeClassifier(path_to_haar + 'haarcascade_frontalface_default.xml')
+        cascades = cv2.CascadeClassifier('face_detection\\haarcascade_frontalface_default.xml')
     else:
-        cascades = cv2.CascadeClassifier( path_to_haar + 'haarcascade_eye.xml')
+        cascades = cv2.CascadeClassifier('face_detection\\haarcascade_eye.xml')
     return cascades
 
 
@@ -44,12 +40,12 @@ def faces_from_database_haar(x_data, new_size=None):
     return new_data
 
 def init_model_dnn():
-    modelFile = "opencv_face_detector_uint8.pb"
-    configFile = "opencv_face_detector.pbtxt"
+    modelFile = "face_detection\\opencv_face_detector_uint8.pb"
+    configFile = "face_detection\\opencv_face_detector.pbtxt"
     net = cv2.dnn.readNetFromTensorflow(modelFile, configFile)
     return net
 
-def cut_out_faces_dnn(im, net=None, new_size=None, conf_threshold=0.7):
+def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_threshold=0.7):
     if net is None:
         net = init_model_dnn()
     faces_found = []
@@ -71,6 +67,8 @@ def cut_out_faces_dnn(im, net=None, new_size=None, conf_threshold=0.7):
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box.astype("int")
             face = im[startY:endY, startX:endX]
+            if to_greyscale:
+                face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
             if new_size is not None:
                 assert len(new_size) == 2
                 face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
@@ -78,11 +76,11 @@ def cut_out_faces_dnn(im, net=None, new_size=None, conf_threshold=0.7):
     return faces_found
     
 
-def faces_from_database_dnn(x_data, new_size=None):
+def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
     net = init_model_dnn()
     new_data = []
     for img in x_data:
-        found_face = np.array(cut_out_faces_dnn(np.array(img), net=net, new_size=new_size))
+        found_face = np.array(cut_out_faces_dnn(np.array(img), net=net, new_size=new_size, to_greyscale=to_greyscale))
         new_data.append(found_face)
     return new_data
 

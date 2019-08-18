@@ -9,7 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from sklearn.model_selection import train_test_split
 from load_pics import load_jaffe, load_kanade
-from face_detector import cut_out_faces_from_im, faces_from_database
+from face_detector import faces_from_database_dnn
 
 class Emotion_Net:
 
@@ -155,8 +155,8 @@ def train_kanade_model(model_folder = 'models\\'):
     (im_rows, im_cols) = (400, 400)
 
     #x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
-    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", resize=False)
-    x_data = faces_from_database(x_data, (im_rows, im_cols))
+    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", resize=False, load_grey=False)
+    x_data = faces_from_database_dnn(x_data, (im_rows, im_cols), to_greyscale=True)
     x_data = np.array(x_data)
     n_classes = np.unique(y_data).shape[0]
     #im_rows, im_cols = x_data.shape[1], x_data.shape[2]
