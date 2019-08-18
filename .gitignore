@@ -125,5 +125,6 @@ dmypy.json
 
 # Custom
 jaffe
-models
+.kanade_model.hdf5
+kanade_model.hdf5
 kanade
