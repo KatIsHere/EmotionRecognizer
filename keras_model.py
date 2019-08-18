@@ -147,7 +147,7 @@ class Emotion_Net:
         self._model = model_from_json(model_json)
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
     
-# TODO: model doesn't work, need to cut out faces first
+
 def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_id = 'kanade_'
@@ -172,7 +172,7 @@ def train_kanade_model(model_folder = 'models\\'):
 
     Model = Emotion_Net(input_shape, n_classes)
     Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                batch_size=32, n_epochs=150, optim=Adam(lr=0.001))
+                batch_size=32, n_epochs=150, optim=Adam(lr=0.0005))
     Model.evaluate_accur(x_test, y_test)
     Model.save_model(model_folder + model_id + "model.json")
     Model.save_weights(model_folder + model_id + "model.h5")
