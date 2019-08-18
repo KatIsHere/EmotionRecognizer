@@ -45,7 +45,7 @@ def init_model_dnn():
     net = cv2.dnn.readNetFromTensorflow(modelFile, configFile)
     return net
 
-def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_threshold=0.7):
+def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_threshold=0.98):
     if net is None:
         net = init_model_dnn()
     faces_found = []
@@ -53,27 +53,45 @@ def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_thre
     blob = cv2.dnn.blobFromImage(cv2.resize(im, (300, 300)), 1.0, (300, 300), [104, 117, 123], False, False)
     net.setInput(blob)
     detections = net.forward()
+    # if detections.shape[2] > 1:
+    #     for i in range(0, detections.shape[2]):
+    #         confidence = detections[0, 0, i, 2]
+    #         # filter out weak detections by ensuring the `confidence` is
+    #         # greater than the minimum confidence
+    #         if confidence > conf_threshold:
+    #             # compute the (x, y)-coordinates of the bounding box for the
+    #             # object
+    #                     # compute the (x, y)-coordinates of the bounding box for the
+    #             # object
+    #             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+    #             (startX, startY, endX, endY) = box.astype("int")
+    #             # draw the bounding box of the face along with the associated
+    #             # probability
+    #             text = "{:.2f}%".format(confidence * 100)
+    #             y = startY - 10 if startY - 10 > 10 else startY + 10
+    #             cv2.rectangle(im, (startX, startY), (endX, endY),
+    #                 (0, 0, 255), 2)
+    #             cv2.putText(im, text, (startX, y),
+    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+    #     cv2.imshow("", im)
+    #     cv2.waitKey(0)
 
     for i in range(0, detections.shape[2]):
-        # extract the confidence (i.e., probability) associated with the
-        # prediction
         confidence = detections[0, 0, i, 2]
-    
-        # filter out weak detections by ensuring the `confidence` is
-        # greater than the minimum confidence
+
         if confidence > conf_threshold:
-            # compute the (x, y)-coordinates of the bounding box for the
-            # object
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box.astype("int")
             face = im[startY:endY, startX:endX]
+
             if to_greyscale:
                 face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
             if new_size is not None:
                 assert len(new_size) == 2
                 face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
             faces_found.append(face)
-    return faces_found
+
+    return np.array(faces_found)
     
 
 def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
@@ -81,6 +99,7 @@ def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
     new_data = []
     for img in x_data:
         found_face = np.array(cut_out_faces_dnn(np.array(img), net=net, new_size=new_size, to_greyscale=to_greyscale))
+        #new_data = np.vstack([new_data, found_face])
         new_data.append(found_face)
     return new_data
 

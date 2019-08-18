@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import re
+from face_detector import cut_out_faces_dnn, init_model_dnn
 
 def load_img(im_path, greyscale=False, resize=False, new_size=None):
     """
@@ -48,7 +49,7 @@ def load_jaffe(folder_dir, f_format, greyscale=False,
     return data, labels
 
 
-def load_kanade(img_folder_dir, label_folder_dir, resize, new_im_size = None, file_format='png', load_grey=True):
+def load_kanade(img_folder_dir, label_folder_dir, new_im_size = None, file_format='png', load_grey=True):
     """ Loads kanade dataset
 
         in: 
@@ -66,7 +67,7 @@ def load_kanade(img_folder_dir, label_folder_dir, resize, new_im_size = None, fi
     """
     labeles = []
     pics = []
-    
+    net = init_model_dnn()
     # Firstly we find out if image is labeled and if yes we load it to the database
     for root, dirs, files in os.walk(label_folder_dir):
         for file in files:
@@ -77,10 +78,15 @@ def load_kanade(img_folder_dir, label_folder_dir, resize, new_im_size = None, fi
                 pic_file = file.replace('_emotion.txt', "." + file_format)
                 pic_root = root.replace(label_folder_dir, img_folder_dir)
                 pics_path = os.path.join(pic_root, pic_file)
-                pics.append(load_img(pics_path, load_grey, resize, new_im_size))
+                im = load_img(pics_path, False, None)
 
-                with open(labeled_pics_path, 'r') as lbl:
-                    labeles.append(float(lbl.read()[:-1]) - 1.0)
+                # we fiind face on the image and save it to the database
+                faces = cut_out_faces_dnn(im, net=net, new_size=new_im_size, to_greyscale=True, conf_threshold=0.97)
+                
+                if faces.shape[0] != 0:
+                    pics.append(faces[0])
+                    with open(labeled_pics_path, 'r') as lbl:
+                        labeles.append(float(lbl.read()[:-1]) - 1.0)
     return pics, np.array(labeles).astype('int32')
     
     

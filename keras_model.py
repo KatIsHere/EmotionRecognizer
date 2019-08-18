@@ -57,25 +57,25 @@ class Emotion_Net:
 
     def __arcitecture_2(self, input_shape, n_classes):
 
-        self._model.add(Conv2D(64, (7, 7), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(32, (7, 7), padding = "valid", input_shape = input_shape, activation = 'relu'))
         #self._model.add(Conv2D(64, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())       
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))        
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))        
         
-        self._model.add(Conv2D(128, (5, 5), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (5, 5), padding = "valid", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
         #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        #self._model.add(Dropout(0.4))
+        self._model.add(Dropout(0.3))
 
-        self._model.add(Conv2D(256, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
@@ -92,7 +92,7 @@ class Emotion_Net:
         # tensor reforming 
         self._model.add(Flatten())
         self._model.add(Dense(1024, activation = "relu"))
-        self._model.add(Dropout(0.5))     # reg
+        self._model.add(Dropout(0.4))     # reg
         self._model.add(Dense(512, activation = "relu"))
         self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(n_classes, activation = 'softmax'))
@@ -152,11 +152,10 @@ def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_id = 'kanade_'
     #(im_rows, im_cols) = (490//2, 640//2)
-    (im_rows, im_cols) = (400, 400)
+    (im_rows, im_cols) = (300, 300)
 
     #x_data, y_data = load_jaffe("project\\jaffe", 'tiff')
-    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", resize=False, load_grey=False)
-    x_data = faces_from_database_dnn(x_data, (im_rows, im_cols), to_greyscale=True)
+    x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", new_im_size=(im_rows, im_cols), load_grey=False)
     x_data = np.array(x_data)
     n_classes = np.unique(y_data).shape[0]
     #im_rows, im_cols = x_data.shape[1], x_data.shape[2]
@@ -173,7 +172,7 @@ def train_kanade_model(model_folder = 'models\\'):
 
     Model = Emotion_Net(input_shape, n_classes)
     Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                batch_size=16, n_epochs=300, optim=SGD(lr=0.001))
+                batch_size=32, n_epochs=150, optim=Adam(lr=0.001))
     Model.evaluate_accur(x_test, y_test)
     Model.save_model(model_folder + model_id + "model.json")
     Model.save_weights(model_folder + model_id + "model.h5")
