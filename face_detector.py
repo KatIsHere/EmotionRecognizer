@@ -53,28 +53,6 @@ def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_thre
     blob = cv2.dnn.blobFromImage(cv2.resize(im, (300, 300)), 1.0, (300, 300), [104, 117, 123], False, False)
     net.setInput(blob)
     detections = net.forward()
-    # if detections.shape[2] > 1:
-    #     for i in range(0, detections.shape[2]):
-    #         confidence = detections[0, 0, i, 2]
-    #         # filter out weak detections by ensuring the `confidence` is
-    #         # greater than the minimum confidence
-    #         if confidence > conf_threshold:
-    #             # compute the (x, y)-coordinates of the bounding box for the
-    #             # object
-    #                     # compute the (x, y)-coordinates of the bounding box for the
-    #             # object
-    #             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-    #             (startX, startY, endX, endY) = box.astype("int")
-    #             # draw the bounding box of the face along with the associated
-    #             # probability
-    #             text = "{:.2f}%".format(confidence * 100)
-    #             y = startY - 10 if startY - 10 > 10 else startY + 10
-    #             cv2.rectangle(im, (startX, startY), (endX, endY),
-    #                 (0, 0, 255), 2)
-    #             cv2.putText(im, text, (startX, y),
-    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
-    #     cv2.imshow("", im)
-    #     cv2.waitKey(0)
 
     for i in range(0, detections.shape[2]):
         confidence = detections[0, 0, i, 2]
@@ -93,6 +71,15 @@ def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_thre
 
     return np.array(faces_found)
     
+
+def find_faces_dnn(im, net=None):
+    if net is None:
+        net = init_model_dnn()
+    blob = cv2.dnn.blobFromImage(cv2.resize(im, (300, 300)), 1.0, (300, 300), [104, 117, 123], False, False)
+    net.setInput(blob)
+    detections = net.forward()
+            
+    return detections
 
 def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
     net = init_model_dnn()
