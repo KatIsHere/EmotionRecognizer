@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
-
+from prepare_dataset import DataPreprocessor
 from load_pics import load_jaffe, load_kanade
 
 class Net(nn.Module):

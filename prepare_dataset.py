@@ -7,7 +7,7 @@ from face_detector import init_model_dnn, find_faces_dnn
 from load_pics import load_img
 
 
-class readData:
+class DataPreprocessor:
 
     def __init__(self):
         self._jaffe_data = None
@@ -61,12 +61,13 @@ class readData:
                         data_path.append(pics_path)
                         with open(labeled_pics_path, 'r') as lbl:
                             labels.append(float(lbl.read()[:-1]) - 1.0)
-
-        self._kanade_data = {'file':data_path, 'label': labels, 
-                                'x0' : bbox[:, 0], 'y0' : bbox[:, 1], 
-                                'x1' : bbox[:, 2], 'y1' : bbox[:, 3], 
-                                'x_norm0' : box_norm[:, 0], 'y_norm0' : box_norm[:, 1], 
-                                'x_norm1' : box_norm[:, 2], 'y_norm1' : box_norm[:, 3]                                
+        bbox = np.array(bbox)
+        bbox_norm = np.array(bbox_norm)
+        self._kanade_data = {'file': data_path, 'label': labels, 
+                            'x0' : bbox[:, 0], 'y0' : bbox[:, 1], 
+                            'x1' : bbox[:, 2], 'y1' : bbox[:, 3], 
+                            'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
+                            'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]                                
         }
     
 
@@ -95,29 +96,47 @@ class readData:
 
                 data_path.append(file)
                 labels.append(lbl_dict[file[strt_ind : strt_ind + 2]])
-        self._jaffe_data = {'file':data_path, 'label': labels, 
+        bbox = np.array(bbox)
+        bbox_norm = np.array(bbox_norm)
+        self._jaffe_data = {'file': data_path, 'label': labels, 
                             'x0' : bbox[:, 0], 'y0' : bbox[:, 1], 
                             'x1' : bbox[:, 2], 'y1' : bbox[:, 3], 
-                            'x_norm0' : box_norm[:, 0], 'y_norm0' : box_norm[:, 1], 
-                            'x_norm1' : box_norm[:, 2], 'y_norm1' : box_norm[:, 3]}
+                            'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
+                            'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
 
 
     def save_csv(self, filename):
-        df = pd.DataFrame(data={
-            'file':self._kanade_data['file'] + self._jaffe_data['file'], 
-            'label': self._kanade_data['label'] + self._jaffe_data['label'], 
+        if self._kanade_data is not None and self._jaffe_data is not None:
+            df = pd.DataFrame(data={
+                'file': self._kanade_data['file'] + self._jaffe_data['file'], 
+                'label': self._kanade_data['label'] + self._jaffe_data['label'], 
 
-            'x0': self._kanade_data['x0'] + self._jaffe_data['x0'], 
-            'y0': self._kanade_data['y0'] + self._jaffe_data['y0'], 
-            'x1': self._kanade_data['x1'] + self._jaffe_data['x1'], 
-            'y1': self._kanade_data['y1'] + self._jaffe_data['y1'], 
+                'x0': np.concatenate((self._kanade_data['x0'], self._jaffe_data['x0'])), 
+                'y0': np.concatenate((self._kanade_data['y0'], self._jaffe_data['y0'])), 
+                'x1': np.concatenate((self._kanade_data['x1'], self._jaffe_data['x1'])), 
+                'y1': np.concatenate((self._kanade_data['y1'], self._jaffe_data['y1'])), 
 
-            'x_norm0': self._kanade_data['x_norm0'] + self._jaffe_data['x_norm0'], 
-            'y_norm0': self._kanade_data['y_norm0'] + self._jaffe_data['y_norm0'], 
-            'x_norm1': self._kanade_data['x_norm1'] + self._jaffe_data['x_norm1'], 
-            'y_norm1': self._kanade_data['y_norm1'] + self._jaffe_data['y_norm1'], 
-        })
+                'x_norm0': np.concatenate((self._kanade_data['x_norm0'], self._jaffe_data['x_norm0'])), 
+                'y_norm0': np.concatenate((self._kanade_data['y_norm0'], self._jaffe_data['y_norm0'])), 
+                'x_norm1': np.concatenate((self._kanade_data['x_norm1'], self._jaffe_data['x_norm1'])), 
+                'y_norm1': np.concatenate((self._kanade_data['y_norm1'], self._jaffe_data['y_norm1'])), 
+            })
+        elif self._kanade_data is not None:
+            df = pd.DataFrame(data=self._kanade_data)
+        elif self._jaffe_data is not None:
+            df = pd.DataFrame(data=self._jaffe_data)
+        else:
+            return
 
-        df.sample(6)
         df.to_csv(filename)    
 
+
+def prepare_data():
+    dt = DataPreprocessor()
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
+    dt.load_jaffe("data\\jaffe\\")
+    dt.save_csv('data\\dataset.csv')
+
+
+if __name__ == "__main__":
+    prepare_data()
