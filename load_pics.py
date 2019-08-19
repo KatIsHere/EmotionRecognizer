@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import re
+import pandas as pd
 from face_detector import cut_out_faces_dnn, init_model_dnn
 
 def load_img(im_path, greyscale=False, resize=False, new_size=None):
@@ -24,6 +25,20 @@ def load_img(im_path, greyscale=False, resize=False, new_size=None):
         img = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
 
     return img
+
+
+def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
+    for index, row in df.iterrows():
+        im = load_img(row['file'], greyscale, None)
+        im = im[row['y0']:row['y1'], row['x0']:row['x1']]
+        if new_size is not None:
+            im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
+        x_data.append(im)
+        y_data.append(row['label'])
+    return x_data, y_data
+    
 
 # TODO: rename labels and cut out face before passing down
 def load_jaffe(folder_dir, f_format, greyscale=False,
@@ -90,7 +105,6 @@ def load_kanade(img_folder_dir, label_folder_dir, new_im_size = None, file_forma
     return pics, np.array(labeles).astype('int32')
     
     
-
 # TODO: rewrite using tiff package
 def load_jaffe_tiff(folder_dir, 
                 lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):

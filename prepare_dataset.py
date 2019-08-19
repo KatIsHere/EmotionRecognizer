@@ -14,7 +14,7 @@ class DataPreprocessor:
         self._kanade_data = None
         self.conf_threshold=0.97
 
-
+    # for each labeled foder loads first and two last images (the position of the face usually stays the same)
     def load_kanade(self, label_dir, img_dir, file_format='png'):
         """ Loads kanade dataset
 
@@ -39,9 +39,13 @@ class DataPreprocessor:
                     labeled_pics_path = os.path.join(root, file)
                     #? images will be in a similare directory, 
                     #? except file format and root directory will be different 
-                    pic_file = file.replace('_emotion.txt', "." + file_format)
+                    pic_file = file.replace('_emotion.txt', '')
                     pic_root = root.replace(label_dir, img_dir)
-                    pics_path = os.path.join(pic_root, pic_file)
+                    pics_path = os.path.join(pic_root, pic_file + "." + file_format)
+                    pics_neutral_path = os.path.join(pic_root, pic_file[:-2] + "01." + file_format)                          # first file name
+                    prev_num = int(pic_file[-2:]) - 2
+                    str_num = prev_num = '0' + str(prev_num) if prev_num < 10 else str(prev_num)
+                    pics_prev_path = os.path.join(pic_root, pic_file[:-2] + str_num + "." + file_format)  # previous file name
                     im = load_img(pics_path, False, None)
                 
                     # we fiind face on the image and save it to the database
@@ -53,14 +57,24 @@ class DataPreprocessor:
                         (h, w) = im.shape[:2]
                         box_norm =  detections[0, 0, 0, 3:7]
                         box = box_norm * np.array([w, h, w, h])
-                        box = box.astype("int")
+                        box = box.astype("int") # (startX, startY, endX, endY)
+                        # saves 2 frames
+                        bbox.append(box)
                         bbox.append(box)
                         bbox_norm.append(box_norm)
-                        # (startX, startY, endX, endY)
-
+                        bbox_norm.append(box_norm)
                         data_path.append(pics_path)
+                        data_path.append(pics_prev_path)
                         with open(labeled_pics_path, 'r') as lbl:
-                            labels.append(float(lbl.read()[:-1]) - 1.0)
+                            labl = float(lbl.read()[:-1])
+                            labels.append(labl)
+                            labels.append(labl)
+                        # saves first neutral frame
+                        bbox.append(box)
+                        bbox_norm.append(box_norm)
+                        data_path.append(pics_neutral_path)
+                        labels.append(0.0)
+
         bbox = np.array(bbox)
         bbox_norm = np.array(bbox_norm)
         self._kanade_data = {'file': data_path, 'label': labels, 
