@@ -9,8 +9,13 @@ from keras.layers.normalization import BatchNormalization
 
 class Emotion_Net:
 
-    def __init__(self, input_shape, n_classes):
+    def __init__(self, loss_f = "categorical_crossentropy", optim = SGD(lr=0.001)):
         self._model = Sequential()
+        self._loss_func = loss_f
+        self._optim  = optim
+        self.__compiled = False
+
+    def init_model(self, input_shape, n_classes):
         self.__arcitecture_2(input_shape, n_classes)
 
     def __arcitecture_1(self, input_shape, n_classes):
@@ -65,17 +70,17 @@ class Emotion_Net:
         #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        self._model.add(Dropout(0.3))
-
-        self._model.add(Conv2D(128, (1, 1), padding = "same", input_shape = input_shape, activation = 'relu'))
-        self._model.add(BatchNormalization())
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(Dropout(0.4))
 
         self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+
+        self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
@@ -100,7 +105,10 @@ class Emotion_Net:
         """Compile and train the model"""
 
         # optimizing
+        self._loss_func = loss_func
+        self._optim  = optim
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
+        self.__compiled = True
 
         # learning
         if save_best:
@@ -114,6 +122,9 @@ class Emotion_Net:
 
     def evaluate_accur(self, x_test, y_test):
         # print accuracy
+        if not self.__compiled:
+            self.__compiled = True
+            self._model.compile(loss = self._loss_func, optimizer = self._optim, metrics = ["accuracy"])
         score = self._model.evaluate(x_test, y_test, verbose = 0)
         print("Test score :", score[0])
         print("Test accuracy :", score[1], "\n")
@@ -136,10 +147,18 @@ class Emotion_Net:
         self._model.load_weights(h5_filename)
 
 
-    def load_model(self, json_filename, loss_func="categorical_crossentropy", optim=SGD(lr=0.001)):
+    def load_model(self, json_filename, compile=True):
         """Loads model structure from json file"""
         with open(json_filename, 'r') as json_file:
             model_json = json_file.read()
         self._model = model_from_json(model_json)
-        self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
+        if compile:
+            self.__compiled = True
+            self._model.compile(loss = self._loss_func, optimizer = self._optim, metrics = ["accuracy"])
+
+    def predict(self, imgs):
+        if not self.__compiled:
+            self.__compiled = True
+            self._model.compile(loss = self._loss_func, optimizer = self._optim, metrics = ["accuracy"])
+        return self._model.predict(imgs)
     

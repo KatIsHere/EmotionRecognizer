@@ -127,4 +127,6 @@ dmypy.json
 jaffe
 .kanade_model.hdf5
 kanade_model.hdf5
+.combined_model.hdf5
+combined_model.hdf5
 kanade
