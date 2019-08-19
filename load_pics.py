@@ -25,9 +25,11 @@ def load_img(im_path, greyscale=False, resize=False, new_size=None):
 
     return img
 
-
+# TODO: rename labels and cut out face before passing down
 def load_jaffe(folder_dir, f_format, greyscale=False,
                 lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):
+                # lbl_dict = {'HA' : 5, 'SA' : 6, 'SU' : 2, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'NE' : 0} #TODO
+                # Emotion labeling: 0 : neutral, 1 : anger, 2 : contempt, 3 : disgust, 4 : fear, 5 : happy, 6 : sadness, 7 : surprise 
     """ Loads jaffe dataset
 
         input: 
@@ -48,7 +50,7 @@ def load_jaffe(folder_dir, f_format, greyscale=False,
     labels = np.array([lbl_dict[fname[strt_ind : strt_ind + 2]] for fname in f_list])
     return data, labels
 
-
+# TODO: give all images to cv.bolb?
 def load_kanade(img_folder_dir, label_folder_dir, new_im_size = None, file_format='png', load_grey=True):
     """ Loads kanade dataset
 

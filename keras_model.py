@@ -148,6 +148,13 @@ class Emotion_Net:
         self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
     
 
+# TODO: cut out last 3 frames instead of 1
+# TODO: add jaffa data to main data(CHANGE LABELS)
+# TODO: load weights before running train again
+# TODO: see if torch models can be optimized
+# TODO: visualize
+# TODO: create xml file with bboxes
+# TODO: augment data
 def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_id = 'kanade_'

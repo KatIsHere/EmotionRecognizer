@@ -12,8 +12,10 @@ from load_pics import load_jaffe, load_kanade
 
 class Net(nn.Module):
 
+    # TODO: add assert for img size, or something similar
     def __init__(self, class_num, channel_num=1, batch_size=32):
         super(Net, self).__init__()
+        
         self._batch_size = batch_size
         filter_11, filter_12, filter_2, filter_3, filter_4 = 32, 64, 128, 256, 512
         
@@ -79,9 +81,7 @@ class Net(nn.Module):
         return num_features
 
 
-# this is a progress bar function from 
-# https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
-# Print iterations progress
+# Print iterations progress bar
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
     """
     Call in a loop to create terminal progress bar
@@ -165,7 +165,7 @@ class Emotion_Net:
         self._model = torch.load(path)
                     
 
-#TODO: write data loaders
+#TODO: write data loaders for pics (ImgLoader class)
 def train_kanade_model(model_folder = 'models\\'):
     """Trains a model based on kanade database and saves it's structure and weights"""
     model_id = 'kanade_'

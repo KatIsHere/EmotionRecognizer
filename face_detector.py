@@ -107,10 +107,10 @@ def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
 
 
 
+# TODO: write a solution using HOG detector
 def cut_out_faces_HOG(img, new_size=None):
     pass
 
-# TODO: write a solution using HOG detector
 def faces_from_database_HOG(x_data, new_size=None):
     pass
 
