@@ -10,10 +10,10 @@ import torchvision.transforms as transforms
 from prepare_dataset import DataPreprocessor
 from load_pics import load_jaffe, load_kanade
 
-class Net(nn.Module):
+data, labels = load_kanade()
+X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.3, shuffle=True)
 
-    data, labels = load_kanade()
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.3, shuffle=True)
+class Net(nn.Module):
 
     # TODO: add assert for img size, or something similar
     def __init__(self, class_num, channel_num=1, batch_size=32):
