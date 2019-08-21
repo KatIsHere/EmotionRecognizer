@@ -10,6 +10,7 @@ import random
 import pandas as pd
 import cv2
 from prepare_dataset import DataPreprocessor
+import matplotlib.pyplot as plt
 
 def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
     detections = find_faces_dnn(img)
@@ -55,8 +56,10 @@ def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
     return img
 
 
-
-def predict_and_vizualize(csv_filename, model):
+def predict_and_vizualize(csv_filename):
+    model = Emotion_Net()
+    model.load_model("models\\combined_model.json")
+    model.load_weights("models\\combined_model.h5")
     df = pd.read_csv(csv_filename)
     smp = df.sample(5, random_state=42)
     for index, row in smp.iterrows():
@@ -64,53 +67,87 @@ def predict_and_vizualize(csv_filename, model):
         img = detect_and_classify(img, model)
         cv2.imshow('img %d'.format(index), img)
         cv2.waitKey(0)
-    
-
-def train_kanade_model(model_folder = 'models\\'):
-    """Trains a model based on kanade database and saves it's structure and weights"""
-    #model_id = 'combined_'
-    model_id = 'combined_'
-    (im_rows, im_cols) = (300, 300)
-    x_data, y_data = [], []
-
-    #x_data, y_data = load_jaffe("project\\jaffe", 'tiff', lbl_dict = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 } )
-    #x_data, y_data = load_kanade("kanade\\cohn-kanade-images\\", "kanade\\emotion\\", new_im_size=(im_rows, im_cols), load_grey=False)
-
-    x_data, y_data = load_dataset_csv('data\\dataset.csv', new_size=(im_rows, im_cols))
-
-    x_data = np.array(x_data)
-    y_data = np.array(y_data, dtype='int32')
-    x_data = x_data.astype('float32')
-    n_classes = np.unique(y_data).shape[0]
-    input_shape = (im_rows, im_cols, 1)
-
-    # normalizing and preparing data
-    x_data /= 255.0   
-    y_data = np_utils.to_categorical(y_data, n_classes)
-    x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, 1)
-
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
-
-    Model = Emotion_Net()
-    #Model.init_model(input_shape, n_classes)
-    Model.load_model(model_folder + "kanade_model.json")
-    Model.load_weights(model_folder + "kanade_model.h5")
-    Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                batch_size=32, n_epochs=50, optim=Adam(lr=0.0005))
-    Model.evaluate_accur(x_test, y_test)
-    Model.save_model(model_folder + model_id + "model.json")
-    Model.save_weights(model_folder + model_id + "model.h5")
 
 
+def validate_on_database(csv_filename, model_filename):
+        model = Emotion_Net()
+        model.load_model(model_filename +".json")
+        model.load_weights(model_filename + ".h5")
+        (im_rows, im_cols) = (200, 200)
+        x_val, y_val = load_dataset_csv('data\\dataset.csv', new_size=(im_rows, im_cols))
+        x_val = np.array(x_val)
+        y_val = np.array(y_val, dtype='int32')
+        x_val = x_val.astype('float32')
+        x_val /= 255.0   
+        y_val = np_utils.to_categorical(y_val, 8)
+        x_val = x_val.reshape(x_val.shape[0], im_rows, im_cols, 1)
 
-#? Long term plans:
+        model.evaluate_accur(x_val, y_val)
+
+
+def train_keras_model(dataset_csv_filename, model_folder = 'models\\', 
+                        model_id='combined_', load_weights=True, plot_metrix=False):
+        """Trains a model based on kanade database and saves it's structure and weights"""
+        
+        (im_rows, im_cols) = (200, 200)
+
+        x_data, y_data = load_dataset_csv(dataset_csv_filename, new_size=(im_rows, im_cols))
+
+        x_data = np.array(x_data)
+        y_data = np.array(y_data, dtype='int32')
+        x_data = x_data.astype('float32')
+        n_classes = np.unique(y_data).shape[0]
+        input_shape = (im_rows, im_cols, 1)
+
+        # normalizing and preparing data
+        x_data /= 255.0   
+        y_data = np_utils.to_categorical(y_data, n_classes)
+        x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, 1)
+
+        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+
+        Model = Emotion_Net()
+
+        if load_weights:
+                Model.load_model(model_folder + "kanade_model.json")
+                Model.load_weights(model_folder + "kanade_model.h5")
+        else:
+                Model.init_model(input_shape, n_classes)
+
+        history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
+                        batch_size=32, n_epochs=50, optim=Adam(lr=0.0005))
+        if plot_metrix:
+                
+                plt.subplot(2,2,1)
+                plt.title('training loss')
+                plt.plot(history_call.history['loss'])
+
+                plt.subplot(2,2,2)
+                plt.title('training accuracy')
+                plt.plot(history_call.history['acc'])
+
+                plt.subplot(2,2,3)
+                plt.title('testing loss')
+                plt.plot(history_call.history['val_loss'])
+
+                plt.subplot(2,2,4)
+                plt.title('testing accuracy')
+                plt.plot(history_call.history['val_acc'])
+
+        Model.evaluate_accur(x_test, y_test)
+        Model.save_model(model_folder + model_id + "model.json")
+        Model.save_weights(model_folder + model_id + "model.h5")
+
+
+
+#? Long term tasks:
 # TODO: see if torch models can be optimized
-# TODO: visualize
 # TODO: augment data (in the future)
+# ? Short term tasks
+# TODO: visualize
 if __name__ == "__main__":
-    random.seed(9001)
-    Model = Emotion_Net()
-    Model.load_model("models\\combined_model.json")
-    Model.load_weights("models\\combined_model.h5")
-    predict_and_vizualize('data\\dataset.csv', Model)
-    #train_kanade_model()
+    random.seed()
+    #predict_and_vizualize('data\\dataset.csv')
+    train_keras_model('data\\dataset_kanade.csv', load_weights=True, model_id='kanade_', plot_metrix=True)
+    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_model")
+    plt.show()

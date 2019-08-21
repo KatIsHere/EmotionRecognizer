@@ -59,7 +59,6 @@ class Emotion_Net:
     def __arcitecture_2(self, input_shape, n_classes):
 
         self._model.add(Conv2D(32, (7, 7), padding = "valid", input_shape = input_shape, activation = 'relu'))
-        #self._model.add(Conv2D(64, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())       
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))        
         
@@ -74,7 +73,7 @@ class Emotion_Net:
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        self._model.add(Dropout(0.4))
+        self._model.add(Dropout(0.5))
 
         self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
@@ -112,12 +111,13 @@ class Emotion_Net:
 
         # learning
         if save_best:
-            self._model.fit(x_train, y_train, batch_size = batch_size,  \
+            history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
                         callbacks = [ModelCheckpoint(save_best_to, monitor = "val_acc", save_best_only = True, save_weights_only = True, mode = "auto")], \
                         epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
         else:
-            self._model.fit(x_train, y_train, batch_size = batch_size,  \
+            history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
                         epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
+        return history_callback
 
 
     def evaluate_accur(self, x_test, y_test):

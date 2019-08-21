@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from face_detector import init_model_dnn, find_faces_dnn
 from load_pics import load_img
-
+import random
 
 class DataPreprocessor:
 
@@ -15,7 +15,7 @@ class DataPreprocessor:
         self.conf_threshold=0.97
 
     # for each labeled foder loads first and two last images (the position of the face usually stays the same)
-    def load_kanade(self, label_dir, img_dir, file_format='png'):
+    def load_kanade(self, label_dir, img_dir, file_format='png', netral_percentage=0.5):
         """ Loads kanade dataset
 
             in: 
@@ -45,7 +45,7 @@ class DataPreprocessor:
                     pics_neutral_path = os.path.join(pic_root, pic_file[:-2] + "01." + file_format)                          # first file name
                     prev_num = int(pic_file[-2:]) - 2
                     str_num = prev_num = '0' + str(prev_num) if prev_num < 10 else str(prev_num)
-                    pics_prev_path = os.path.join(pic_root, pic_file[:-2] + str_num + "." + file_format)  # previous file name
+                    # pics_prev_path = os.path.join(pic_root, pic_file[:-2] + str_num + "." + file_format)  # previous file name
                     im = load_img(pics_path, False, None)
                 
                     # we fiind face on the image and save it to the database
@@ -60,20 +60,23 @@ class DataPreprocessor:
                         box = box.astype("int") # (startX, startY, endX, endY)
                         # saves 2 frames
                         bbox.append(box)
-                        bbox.append(box)
-                        bbox_norm.append(box_norm)
                         bbox_norm.append(box_norm)
                         data_path.append(pics_path)
-                        data_path.append(pics_prev_path)
+
+                        #bbox.append(box)
+                        #bbox_norm.append(box_norm)
+                        #data_path.append(pics_prev_path)
                         with open(labeled_pics_path, 'r') as lbl:
                             labl = float(lbl.read()[:-1])
                             labels.append(labl)
-                            labels.append(labl)
-                        # saves first neutral frame
-                        bbox.append(box)
-                        bbox_norm.append(box_norm)
-                        data_path.append(pics_neutral_path)
-                        labels.append(0.0)
+                            #labels.append(labl)
+
+                        if random.random() >= netral_percentage:    
+                            # saves first neutral frame
+                            bbox.append(box)
+                            bbox_norm.append(box_norm)
+                            data_path.append(pics_neutral_path)
+                            labels.append(0.0)
 
         bbox = np.array(bbox)
         bbox_norm = np.array(bbox_norm)
@@ -148,9 +151,10 @@ class DataPreprocessor:
 def prepare_data():
     dt = DataPreprocessor()
     dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
-    dt.load_jaffe("data\\jaffe\\")
-    dt.save_csv('data\\dataset.csv')
+    #dt.load_jaffe("data\\jaffe\\")
+    dt.save_csv('data\\dataset_kanade.csv')
 
 
 if __name__ == "__main__":
+    random.seed()
     prepare_data()
