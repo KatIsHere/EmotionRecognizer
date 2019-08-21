@@ -58,28 +58,28 @@ class Emotion_Net:
 
     def __arcitecture_2(self, input_shape, n_classes):
 
-        self._model.add(Conv2D(32, (7, 7), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(32, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())       
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))        
         
-        self._model.add(Conv2D(64, (5, 5), padding = "valid", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
         #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(128, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
         self._model.add(Dropout(0.5))
 
-        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 

@@ -217,7 +217,7 @@ def prepare_data():
     dt = DataPreprocessor()
     dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
     dt.load_facesdb('data\\facesdb\\')
-    dt.load_jaffe("data\\jaffe\\")
+    #dt.load_jaffe("data\\jaffe\\")
     dt.save_csv('data\\dataset.csv')
 
 

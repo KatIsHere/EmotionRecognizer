@@ -117,7 +117,7 @@ def train_keras_model(dataset_csv_filename, model_folder = 'models\\',
                 Model.init_model(input_shape, n_classes)
 
         history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=50, optim=Adam(lr=0.0005))
+                        batch_size=32, n_epochs=150, optim=Adam(lr=0.0005))
         if plot_metrix:
                 
                 plt.subplot(2,2,1)
@@ -150,6 +150,7 @@ def train_keras_model(dataset_csv_filename, model_folder = 'models\\',
 if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
-    train_keras_model('data\\dataset_kanade.csv', load_weights=True, model_id='kanade_', plot_metrix=True)
+    train_keras_model('data\\dataset.csv', load_weights=False, model_id='kanade_facedb_', plot_metrix=True)
     validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_model")
+    validate_on_database("data\\dataset_facedb.csv", "models\\kanade_model")
     plt.show()
