@@ -56,6 +56,8 @@ def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
     return img
 
 
+
+
 def predict_and_vizualize(csv_filename):
     model = Emotion_Net()
     model.load_model("models\\combined_model.json")
