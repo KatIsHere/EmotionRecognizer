@@ -32,7 +32,10 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
     x_data, y_data = [], []
     for index, row in df.iterrows():
         im = load_img(row['file'], greyscale, None)
-        im = im[row['y0']:row['y1'], row['x0']:row['x1']]
+        if greyscale:
+            im = im[row['y0']:row['y1'], row['x0']:row['x1']]
+        else:
+            im = im[row['y0']:row['y1'], row['x0']:row['x1'], :]
         if new_size is not None:
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)

@@ -107,7 +107,7 @@ class Emotion_Net:
         # tensor reforming 
         self._model.add(Flatten())
         self._model.add(Dense(1024, activation = "relu"))
-        self._model.add(Dropout(0.4))     # reg
+        self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(512, activation = "relu"))
         self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(n_classes, activation = 'softmax'))
@@ -133,8 +133,6 @@ class Emotion_Net:
             history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
                         epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
         return history_callback
-
-    
 
 
     def augment_and_train(self, x_train, y_train, x_test, y_test, 

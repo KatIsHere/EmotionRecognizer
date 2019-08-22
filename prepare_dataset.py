@@ -151,7 +151,7 @@ class DataPreprocessor:
                 labels.append(label_map[file[strt_ind : strt_ind + 2]])
         bbox = np.array(bbox)
         bbox_norm = np.array(bbox_norm)
-        self._facesdb_data = {'file': data_path, 'label': labels, 
+        self._jaffe_data = {'file': data_path, 'label': labels, 
                             'x0' : bbox[:, 0], 'y0' : bbox[:, 1], 
                             'x1' : bbox[:, 2], 'y1' : bbox[:, 3], 
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 

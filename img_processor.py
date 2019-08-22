@@ -69,7 +69,7 @@ def predict_and_vizualize(csv_filename):
         cv2.waitKey(0)
 
 
-def validate_on_database(csv_filename, model_filename, n_classes, im_shape):
+def validate_on_database(csv_filename, model_filename, n_classes, im_shape, channels=1):
         model = Emotion_Net()
         model.load_model(model_filename +".json")
         model.load_weights(model_filename + ".h5")
@@ -79,9 +79,10 @@ def validate_on_database(csv_filename, model_filename, n_classes, im_shape):
         x_val = x_val.astype('float32')
         x_val /= 255.0   
         y_val = np_utils.to_categorical(y_val, n_classes)
-        x_val = x_val.reshape(x_val.shape[0], im_shape[0], im_shape[1], 1)
+        x_val = x_val.reshape(x_val.shape[0], im_shape[0], im_shape[1], channels)
 
         model.evaluate_accur(x_val, y_val)
+
 
 def normalize_data(x_data, y_data, im_rows, im_cols, channels=1):
         # normalizing and preparing data
@@ -95,27 +96,36 @@ def normalize_data(x_data, y_data, im_rows, im_cols, channels=1):
         return x_data, y_data, n_classes
 
 
-def train_keras_model(dataset_csv, im_shape, model_folder = 'models\\', 
-                        model_id='combined_', load_weights=True, plot_metrix=False):
+def train_keras_model(dataset_csv, 
+                        im_shape, 
+                        model_folder = 'models\\', 
+                        augment=False,
+                        model_id='combined_', 
+                        load_weights=True, 
+                        plot_metrix=False, 
+                        channels=1):
         """Trains a model based on kanade database and saves it's structure and weights"""
-
-        x_data, y_data = load_dataset_csv(dataset_csv, new_size=im_shape)
+        gray = True if channels==1 else False
+        x_data, y_data = load_dataset_csv(dataset_csv, new_size=im_shape, greyscale=gray)
         im_rows, im_cols = im_shape
-        input_shape = (im_rows, im_cols, 1)
-        x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols)
+        input_shape = (im_rows, im_cols, channels)
+        x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
         x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
 
         Model = Emotion_Net()
 
         if load_weights:
-                Model.load_model(model_folder + "kanade_model.json")
-                Model.load_weights(model_folder + "kanade_model.h5")
+                Model.load_model(model_folder + model_id + "model.json")
+                Model.load_weights(model_folder + model_id + "model.h5")
         else:
                 Model.init_model(input_shape, n_classes)
-
-        history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=150, optim=Adam(lr=0.0001))
+        if augment:
+                history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
+                        batch_size=32, n_epochs=150, optim=Adam(lr=0.001))
+        else:
+                history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
+                        batch_size=32, n_epochs=40, optim=Adam(lr=0.001))
         if plot_metrix:
                 
                 plt.subplot(2,2,1)
@@ -141,15 +151,20 @@ def train_keras_model(dataset_csv, im_shape, model_folder = 'models\\',
 
 
 # validating on a completly different dataset
-def train_keras_model_with_validation(dataset_csv, validation_csv, im_shape, model_folder = 'models\\', 
-                        model_id='combined_', load_weights=True, plot_metrix=False):
+def train_keras_model_with_validation(dataset_csv, validation_csv, 
+                        im_shape, 
+                        model_folder = 'models\\', 
+                        model_id='combined_', 
+                        load_weights=True, 
+                        plot_metrix=False, 
+                        channels=1):
         """Trains a model based on kanade database and saves it's structure and weights"""
         im_rows, im_cols = im_shape
+        gray = True if channels==1 else False
+        x_train, y_train = load_dataset_csv(dataset_csv, new_size=im_shape, greyscale=gray)
+        x_test, y_test = load_dataset_csv(validation_csv, new_size=im_shape, greyscale=gray)
 
-        x_train, y_train = load_dataset_csv(dataset_csv, new_size=im_shape)
-        x_test, y_test = load_dataset_csv(validation_csv, new_size=im_shape)
-
-        input_shape = (im_rows, im_cols, 1)
+        input_shape = (im_rows, im_cols, channels)
         x_train, y_train, n_classes = normalize_data(x_train, y_train, im_rows, im_cols)
         x_test, y_test, _ = normalize_data(x_test, y_test, im_rows, im_cols)        
 
@@ -162,7 +177,7 @@ def train_keras_model_with_validation(dataset_csv, validation_csv, im_shape, mod
                 Model.init_model(input_shape, n_classes)
 
         history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=80, optim=Adam(lr=0.0005))
+                        batch_size=32, n_epochs=20, optim=Adam(lr=0.0005))
         if plot_metrix:
                 plt.subplot(2,2,1)
                 plt.title('training loss')
@@ -187,25 +202,31 @@ def train_keras_model_with_validation(dataset_csv, validation_csv, im_shape, mod
 
 
 # ? Short term tasks
-# TODO: implement transfer learning solution
 # TODO: visualize
-# TODO: need to create validation database
+# TODO: need to create separate validation database
 if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
-    (im_rows, im_cols) = (200, 200)
-    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols),
-                       load_weights=False, model_id='kanade_v3_', plot_metrix=True)
-    #n_classes = train_keras_model_with_validation('data\\dataset_kanade.csv', 'data\\dataset_facesdb.csv', 
-    #                    im_shape = (im_rows, im_cols), load_weights=False, model_id='kanade_v2_', plot_metrix=True)
+    (im_rows, im_cols) = (256, 256)
+    #n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols),
+    #                   load_weights=False, model_id='kanade_vgg16_', plot_metrix=True, channels=3)
+    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols),
+                       load_weights=False, model_id='combined_vgg16_', plot_metrix=True, channels=3)
     #n_classes = 7
+    print("TESTING KANADE")
     print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_v3_model", 
-                n_classes, im_shape = (im_rows, im_cols))
+    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_vgg16_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=3)
     print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_v3_model", 
-                n_classes, im_shape = (im_rows, im_cols))
-    #print("combined model")
-    #validate_on_database("data\\dataset_jaffe.csv", "models\\combined_model", n_classes)
-    #validate_on_database("data\\dataset_facedb.csv", "models\\combined_model", n_classes)
+    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_vgg16_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    
+    print("TESTING COMBINED")
+    print("Testing on jaffe")
+    validate_on_database("data\\dataset_jaffe.csv", "models\\combined_vgg16_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    print("Testing on facesdb")
+    validate_on_database("data\\dataset_facesdb.csv", "models\\combined_vgg16_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=3)
+
     plt.show()
