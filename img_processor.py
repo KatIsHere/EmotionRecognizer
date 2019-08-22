@@ -70,10 +70,11 @@ def predict_and_vizualize(csv_filename):
 
 
 def validate_on_database(csv_filename, model_filename, n_classes, im_shape, channels=1):
+        gray = True if channels==1 else False
         model = Emotion_Net()
         model.load_model(model_filename +".json")
         model.load_weights(model_filename + ".h5")
-        x_val, y_val = load_dataset_csv(csv_filename, new_size=im_shape)
+        x_val, y_val = load_dataset_csv(csv_filename, new_size=im_shape, greyscale=gray)
         x_val = np.array(x_val)
         y_val = np.array(y_val, dtype='int32')
         x_val = x_val.astype('float32')
@@ -103,7 +104,9 @@ def train_keras_model(dataset_csv,
                         model_id='combined_', 
                         load_weights=True, 
                         plot_metrix=False, 
-                        channels=1):
+                        channels=1,
+                        epocs=50,
+                        arc=0):
         """Trains a model based on kanade database and saves it's structure and weights"""
         gray = True if channels==1 else False
         x_data, y_data = load_dataset_csv(dataset_csv, new_size=im_shape, greyscale=gray)
@@ -119,13 +122,13 @@ def train_keras_model(dataset_csv,
                 Model.load_model(model_folder + model_id + "model.json")
                 Model.load_weights(model_folder + model_id + "model.h5")
         else:
-                Model.init_model(input_shape, n_classes)
+                Model.init_model(input_shape, n_classes, arc=arc)
         if augment:
                 history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=150, optim=Adam(lr=0.001))
+                        batch_size=32, n_epochs=epocs, optim=Adam(lr=0.0001))
         else:
                 history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=40, optim=Adam(lr=0.001))
+                        batch_size=32, n_epochs=epocs, optim=Adam(lr=0.0001))
         if plot_metrix:
                 
                 plt.subplot(2,2,1)
@@ -208,10 +211,15 @@ if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
     (im_rows, im_cols) = (256, 256)
-    #n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols),
-    #                   load_weights=False, model_id='kanade_vgg16_', plot_metrix=True, channels=3)
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols),
-                       load_weights=False, model_id='combined_vgg16_', plot_metrix=True, channels=3)
+    print("KANADE RESNET")
+    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=30,
+                       load_weights=False, model_id='kanade_resnet_', plot_metrix=True, channels=3, arc=2)    
+    print("CUSTOM RESNET")
+    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
+                       load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
+    print("CUSTOM VGG16")
+    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=40,
+                       load_weights=False, model_id='combined_vgg16_', plot_metrix=True, channels=3, arc=1)
     #n_classes = 7
     print("TESTING KANADE")
     print("Testing on jaffe")

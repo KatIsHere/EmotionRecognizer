@@ -8,6 +8,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
 from keras.applications.vgg16 import VGG16
+from keras.applications.densenet import DenseNet121
 
 class Emotion_Net:
 
@@ -19,8 +20,6 @@ class Emotion_Net:
 
     def __transfer_vgg16(self, input_shape, nb_classes):
         model = VGG16(weights = "imagenet", include_top=False, input_shape = input_shape)
-        #for layer in self._model.layers[-3:]:
-        #    layer.trainable = False
         x = model.output
         x = Flatten()(x)
         x = Dense(1024, activation="relu")(x)
@@ -29,9 +28,23 @@ class Emotion_Net:
         predictions = Dense(nb_classes, activation="softmax")(x)
         self._model =  Model(input = model.input, output = predictions)
 
-    def init_model(self, input_shape, n_classes):
-        #self.__arcitecture_2(input_shape, n_classes)
-        self.__transfer_vgg16(input_shape, n_classes)
+    def __transfer_dence121(self, input_shape, nb_classes):
+        model = DenseNet121(weights = "imagenet", include_top=False, input_shape = input_shape)
+        x = model.output
+        x = Flatten()(x)
+        x = Dense(1024, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1024, activation="relu")(x)
+        predictions = Dense(nb_classes, activation="softmax")(x)
+        self._model =  Model(input = model.input, output = predictions)
+
+    def init_model(self, input_shape, n_classes, arc=0):
+        if arc==0:
+            self.__arcitecture_2(input_shape, n_classes)
+        elif arc==1:
+            self.__transfer_vgg16(input_shape, n_classes)
+        elif arc==2:
+            self.__transfer_dence121(input_shape, n_classes)
 
     def __arcitecture_1(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
