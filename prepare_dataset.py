@@ -16,7 +16,7 @@ class DataPreprocessor:
         self.conf_threshold=0.97
 
     # for each labeled foder loads first and two last images (the position of the face usually stays the same)
-    def load_kanade(self, label_dir, img_dir, file_format='png', netral_percentage=0.5):
+    def load_kanade(self, label_dir, img_dir, file_format='png', netral_percentage=0.5, include_contempt=False):
         """ Loads kanade dataset
 
             in: 
@@ -27,12 +27,11 @@ class DataPreprocessor:
             Emotion labeling: 0 : neutral, 1 : anger, 2 : contempt, 
                 3 : disgust, 4 : fear, 5 : happy, 6 : sadness, 7 : surprise 
         """
-        labels = []
-        data_path = []
-        bbox = []      
-        bbox_norm = []
-
+        assert isinstance(label_dir, str) and isinstance(img_dir, str) and isinstance(file_format, str) 
+        labels, data_path = [], []
+        bbox, bbox_norm = [], []
         net = init_model_dnn()
+
         # Firstly we find out if image is labeled and if yes we load it to the database
         for root, dirs, files in os.walk(label_dir):
             for file in files:
@@ -43,16 +42,11 @@ class DataPreprocessor:
                     pic_file = file.replace('_emotion.txt', '')
                     pic_root = root.replace(label_dir, img_dir)
                     pics_path = os.path.join(pic_root, pic_file + "." + file_format)
-                    pics_neutral_path = os.path.join(pic_root, pic_file[:-2] + "01." + file_format)                          # first file name
-                    
-                    #prev_num = int(pic_file[-2:]) - 2
-                    # str_num = prev_num = '0' + str(prev_num) if prev_num < 10 else str(prev_num)
-                    # pics_prev_path = os.path.join(pic_root, pic_file[:-2] + str_num + "." + file_format)  # previous file name
+                    pics_neutral_path = os.path.join(pic_root, pic_file[:-2] + "01." + file_format)    
                     im = load_img(pics_path, False, None)
                 
                     # we fiind face on the image and save it to the database
                     detections = find_faces_dnn(im, net=net)
-                    
                     confidence_max_pos = np.argmax(detections[0, 0, :, 2])
 
                     if detections[0, 0, confidence_max_pos, 2] > self.conf_threshold:
@@ -67,7 +61,7 @@ class DataPreprocessor:
                                 bbox.append(box)
                                 bbox_norm.append(box_norm)
                                 data_path.append(pics_path)
-                                if labl > 2.0:
+                                if labl > 2.0 and not include_contempt:
                                     labels.append(labl - 1.)
                                 else:
                                     labels.append(labl)
@@ -90,18 +84,17 @@ class DataPreprocessor:
 
     def load_facesdb(self, img_dir, file_format='tif', 
                     label_map = {0 : 0, 1: 4, 2 : 5, 3 : 6, 4: 1, 5 : 2, 6 : 3}):
-        # 0 - neutral   - > 0
-        # 1 - Joy       - > 4
-        # 2 - Sadness   - > 5
-        # 3 - Surprise  - > 6
-        # 4 - Anger     - > 1
-        # 5 - Disgust   - > 2
-        # 6 - Fear      - > 3
+        # label mapping     no contempt     with contempt
+        # 0 - Neutral    ->     0        ->      0
+        # 1 - Happy      ->     4        ->      5
+        # 2 - Sadness    ->     5        ->      6
+        # 3 - Surprise   ->     6        ->      7
+        # 4 - Anger      ->     1        ->      1
+        # 5 - Disgust    ->     2        ->      3
+        # 6 - Fear       ->     3        ->      4
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
-        labels = []
-        data_path = []
-        bbox = []      
-        bbox_norm = []
+        labels, data_path = [], []
+        bbox, bbox_norm = [], []
         net = init_model_dnn()
 
         for root, dirs, files in os.walk(img_dir):
@@ -136,12 +129,11 @@ class DataPreprocessor:
                 label_map = {'NE' : 0, 'AN' : 1, 'DI' : 2, 'FE' : 3, 'HA' : 4, 'SA' : 5, 'SU' : 6 }):
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
         f_list = glob.glob(img_dir + "/*." + file_format)
-        labels = []
-        data_path = []
-        bbox = []      
-        bbox_norm = []
+        labels, data_path = [], []
+        bbox, bbox_norm = [], []
         net = init_model_dnn()
-        strt_ind = f_list[0].find('jaffe') + 9
+
+        strt_ind = f_list[0].find('jaffe') + 9  # this one is bad
         for file in f_list:
             im = load_img(file, False, None)
             detections = find_faces_dnn(im, net=net)
@@ -165,6 +157,13 @@ class DataPreprocessor:
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
 
+    def clear(self):
+        del self._kanade_data
+        self._kanade_data = None
+        del self._jaffe_data
+        self._jaffe_data = None
+        del self._facesdb_data
+        self._facesdb_data = None
 
     def save_csv(self, filename):
         data = None
@@ -213,14 +212,43 @@ class DataPreprocessor:
         df.to_csv(filename)    
 
 
-def prepare_data():
+# 'contempt' is included in the dataset
+def prepare_data_with_contempt():
     dt = DataPreprocessor()
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
+    dt.save_csv('data\\dataset_kanade_8.csv')
+    dt.load_facesdb('data\\facesdb\\', label_map = {0 : 0, 1: 5, 2 : 6, 3 : 7, 4: 1, 5 : 3, 6 : 4})
+    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 })
+    dt.save_csv('data\\dataset_8.csv')
+    dt.clear()
     dt.load_facesdb('data\\facesdb\\')
-    #dt.load_jaffe("data\\jaffe\\")
+    dt.save_csv('data\\dataset_facesdb_8.csv')
+    dt.clear()
+    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 })
+    dt.save_csv('data\\dataset_jaffe_8.csv')
+
+
+# 'contempt' is excluded from the dataset
+def prepare_data_no_contempt():
+    dt = DataPreprocessor()
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=False)
+    dt.save_csv('data\\dataset_kanade.csv')
+    dt.load_facesdb('data\\facesdb\\')
+    dt.load_jaffe("data\\jaffe\\")
     dt.save_csv('data\\dataset.csv')
+    dt.clear()
+    dt.load_facesdb('data\\facesdb\\')
+    dt.save_csv('data\\dataset_facesdb.csv')
+    dt.clear()
+    dt.load_jaffe("data\\jaffe\\")
+    dt.save_csv('data\\dataset_jaffe.csv')
 
 
 if __name__ == "__main__":
     random.seed()
-    prepare_data()
+    print("reading data...")
+    prepare_data_with_contempt()
+    print("data saved")    
+    print("reading data...")
+    prepare_data_no_contempt()
+    print("data saved")

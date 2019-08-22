@@ -3,4 +3,4 @@ The task is to create an app that replaces a facial expression with an emodji
 At this stage two databases are used: 
     --- The Extended Cohn-Kanade Dataset (CK+) and can be found at http://www.consortium.ri.cmu.edu/ckagree/. 
     --- The Japanese Female Facial Expression (JAFFE). JAFFE can be found here: http://www.kasrl.org/jaffe.html
-    --- http://app.visgraf.impa.br/database/faces/
+    --- http://app.visgraf.impa.br/database/faces/ - faces database
