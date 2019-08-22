@@ -1,11 +1,13 @@
 import tensorflow as tf
 import numpy as np
 from keras.optimizers import SGD, Adam
-from keras.models import Sequential, model_from_json
+from keras.models import Sequential, model_from_json, Model 
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPool2D, MaxPooling2D
 from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
+from keras.preprocessing.image import ImageDataGenerator
+from keras.applications.vgg16 import VGG16
 
 class Emotion_Net:
 
@@ -15,8 +17,21 @@ class Emotion_Net:
         self._optim  = optim
         self.__compiled = False
 
+    def __transfer_vgg16(self, input_shape, nb_classes):
+        model = VGG16(weights = "imagenet", include_top=False, input_shape = input_shape)
+        #for layer in self._model.layers[-3:]:
+        #    layer.trainable = False
+        x = model.output
+        x = Flatten()(x)
+        x = Dense(1024, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1024, activation="relu")(x)
+        predictions = Dense(nb_classes, activation="softmax")(x)
+        self._model =  Model(input = model.input, output = predictions)
+
     def init_model(self, input_shape, n_classes):
-        self.__arcitecture_2(input_shape, n_classes)
+        #self.__arcitecture_2(input_shape, n_classes)
+        self.__transfer_vgg16(input_shape, n_classes)
 
     def __arcitecture_1(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
@@ -58,28 +73,28 @@ class Emotion_Net:
 
     def __arcitecture_2(self, input_shape, n_classes):
 
-        self._model.add(Conv2D(32, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())       
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))        
         
-        self._model.add(Conv2D(64, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
         #self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (3, 3), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
         self._model.add(Dropout(0.5))
 
-        self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
-        self._model.add(BatchNormalization())
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        #self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        #self._model.add(BatchNormalization())
+        #self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
@@ -117,6 +132,51 @@ class Emotion_Net:
         else:
             history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
                         epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
+        return history_callback
+
+    
+
+
+    def augment_and_train(self, x_train, y_train, x_test, y_test, 
+                    batch_size=16, n_epochs=50, loss_func="categorical_crossentropy", 
+                    optim=SGD(lr=0.001), save_best=True, save_best_to="model.hdf5"):
+        """Compile and train the model"""
+        # generator for augmenting data
+        datagen = ImageDataGenerator(
+                featurewise_center=True,
+                featurewise_std_normalization=True,
+                rotation_range=30,
+                width_shift_range=0.2,
+                height_shift_range=0.2,
+                horizontal_flip=True)
+
+        datagen.fit(x_train)
+
+        # optimizing
+        self._loss_func = loss_func
+        self._optim  = optim
+        self._model.compile(loss = loss_func, optimizer = optim, metrics = ["accuracy"])
+        self.__compiled = True
+
+        # learning
+        if save_best:
+            history_callback = self._model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), 
+                        steps_per_epoch=len(x_train) // batch_size,  
+                        callbacks = [ModelCheckpoint(save_best_to, monitor = "val_acc",         
+                                                                   save_best_only = True,       
+                                                                   save_weights_only = True,    
+                                                                   mode = "auto")], 
+                        epochs = n_epochs, 
+                        verbose = 1, 
+                        shuffle = True, 
+                        validation_data = (x_test, y_test))
+        else:
+            history_callback = self._model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), 
+                        steps_per_epoch=len(x_train) // batch_size,  
+                        epochs = n_epochs, 
+                        verbose = 1, 
+                        shuffle = True, 
+                        validation_data = (x_test, y_test))
         return history_callback
 
 
