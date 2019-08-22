@@ -211,14 +211,14 @@ if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
     (im_rows, im_cols) = (256, 256)
-    print("KANADE RESNET")
-    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=30,
-                       load_weights=False, model_id='kanade_resnet_', plot_metrix=True, channels=3, arc=2)    
-    print("CUSTOM RESNET")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
-                       load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
+    #print("KANADE RESNET")
+    #n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=30,
+    #                   load_weights=False, model_id='kanade_resnet_', plot_metrix=True, channels=3, arc=2)    
+    #print("CUSTOM RESNET")
+    #n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
+    #                   load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
     print("CUSTOM VGG16")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=40,
+    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=23,
                        load_weights=False, model_id='combined_vgg16_', plot_metrix=True, channels=3, arc=1)
     #n_classes = 7
     print("TESTING KANADE")
