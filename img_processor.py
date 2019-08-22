@@ -56,8 +56,6 @@ def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
     return img
 
 
-
-
 def predict_and_vizualize(csv_filename):
     model = Emotion_Net()
     model.load_model("models\\combined_model.json")
@@ -71,7 +69,7 @@ def predict_and_vizualize(csv_filename):
         cv2.waitKey(0)
 
 
-def validate_on_database(csv_filename, model_filename):
+def validate_on_database(csv_filename, model_filename, n_classes):
         model = Emotion_Net()
         model.load_model(model_filename +".json")
         model.load_weights(model_filename + ".h5")
@@ -81,7 +79,7 @@ def validate_on_database(csv_filename, model_filename):
         y_val = np.array(y_val, dtype='int32')
         x_val = x_val.astype('float32')
         x_val /= 255.0   
-        y_val = np_utils.to_categorical(y_val, 8)
+        y_val = np_utils.to_categorical(y_val, n_classes)
         x_val = x_val.reshape(x_val.shape[0], im_rows, im_cols, 1)
 
         model.evaluate_accur(x_val, y_val)
@@ -117,7 +115,7 @@ def train_keras_model(dataset_csv_filename, model_folder = 'models\\',
                 Model.init_model(input_shape, n_classes)
 
         history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.hdf5", \
-                        batch_size=32, n_epochs=150, optim=Adam(lr=0.0005))
+                        batch_size=32, n_epochs=80, optim=Adam(lr=0.0005))
         if plot_metrix:
                 
                 plt.subplot(2,2,1)
@@ -139,6 +137,7 @@ def train_keras_model(dataset_csv_filename, model_folder = 'models\\',
         Model.evaluate_accur(x_test, y_test)
         Model.save_model(model_folder + model_id + "model.json")
         Model.save_weights(model_folder + model_id + "model.h5")
+        return n_classes
 
 
 
@@ -150,7 +149,13 @@ def train_keras_model(dataset_csv_filename, model_folder = 'models\\',
 if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
-    train_keras_model('data\\dataset.csv', load_weights=False, model_id='kanade_facedb_', plot_metrix=True)
-    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_model")
-    validate_on_database("data\\dataset_facedb.csv", "models\\kanade_model")
+    n_classes = train_keras_model('data\\dataset_kanade.csv', load_weights=False, model_id='kanade_', plot_metrix=True)
+    #n_classes = 7
+    print("Testing on jaffe")
+    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_model", n_classes)
+    print("Testing on facesdb")
+    validate_on_database("data\\dataset_facedb.csv", "models\\kanade_model", n_classes)
+    #print("combined model")
+    #validate_on_database("data\\dataset_jaffe.csv", "models\\combined_model", n_classes)
+    #validate_on_database("data\\dataset_facedb.csv", "models\\combined_model", n_classes)
     plt.show()

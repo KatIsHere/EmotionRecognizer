@@ -75,11 +75,11 @@ class Emotion_Net:
 
         self._model.add(Dropout(0.5))
 
-        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(128, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
-        self._model.add(Conv2D(512, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization())
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
 
