@@ -166,6 +166,8 @@ class DataPreprocessor:
         self._facesdb_data = None
 
     def save_csv(self, filename):
+        """Saves all loaded data to .csv file"""
+        assert isinstance(filename, str)
         data = None
         if self._kanade_data is not None:
             data = self._kanade_data
@@ -185,7 +187,7 @@ class DataPreprocessor:
                     'x_norm1': np.concatenate((data['x_norm1'], self._jaffe_data['x_norm1'])), 
                     'y_norm1': np.concatenate((data['y_norm1'], self._jaffe_data['y_norm1']))
                 }
-        else:
+        elif self._jaffe_data is not None:
             data = self._jaffe_data
 
         if self._facesdb_data is not None and data is not None:
@@ -203,7 +205,7 @@ class DataPreprocessor:
                     'x_norm1': np.concatenate((data['x_norm1'], self._facesdb_data['x_norm1'])), 
                     'y_norm1': np.concatenate((data['y_norm1'], self._facesdb_data['y_norm1']))
                 }
-        else:
+        elif self._facesdb_data is not None:
             data = self._facesdb_data
 
         if data is None:
