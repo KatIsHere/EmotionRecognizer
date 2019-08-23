@@ -58,7 +58,32 @@ class Emotion_Net:
         l = net.layers
         description = net.classes[0,0].description  
 
-
+    def __arcitecture_3(self, input_shape, n_classes):
+        self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization(epsilon=0.0001))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization(epsilon=0.0001))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization(epsilon=0.0001))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        
+        # tensor reforming 
+        self._model.add(Flatten())
+        self._model.add(Dense(512, activation = "relu"))
+        self._model.add(Dropout(0.5))     # reg
+        self._model.add(Dense(256, activation = "relu"))
+        self._model.add(Dropout(0.5))     # reg
+        self._model.add(Dense(n_classes, activation = 'softmax'))
 
     def init_model(self, input_shape, n_classes, arc=0):
         if arc==0:
@@ -67,6 +92,8 @@ class Emotion_Net:
             self.__transfer_vgg16(input_shape, n_classes)
         elif arc==2:
             self.__transfer_resnet50(input_shape, n_classes)
+        elif arc==3:
+            self.__arcitecture_3(input_shape, n_classes)
 
     def __arcitecture_1(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))

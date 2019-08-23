@@ -207,34 +207,36 @@ def train_keras_model_with_validation(dataset_csv, validation_csv,
 # ? Short term tasks
 # TODO: visualize
 # TODO: need to create separate validation database
+# TODO: try extracting facial features
 if __name__ == "__main__":
     random.seed()
     #predict_and_vizualize('data\\dataset.csv')
-    (im_rows, im_cols) = (256, 256)
-    #print("KANADE RESNET")
-    #n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=30,
-    #                   load_weights=False, model_id='kanade_resnet_', plot_metrix=True, channels=3, arc=2)    
+    (im_rows, im_cols) = (200, 200)
+    channels = 1
+    print("KANADE")
+    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=60,
+                       load_weights=False, model_id='kanade_arc3_', plot_metrix=True, channels=channels, arc=3)    
     #print("CUSTOM RESNET")
     #n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
     #                   load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
-    print("CUSTOM VGG16")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=23,
-                       load_weights=False, model_id='combined_vgg16_', plot_metrix=True, channels=3, arc=1)
+    print("CUSTOM")
+    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=60,
+                       load_weights=False, model_id='combined_arc3_', plot_metrix=True, channels=channels, arc=3)
     #n_classes = 7
     print("TESTING KANADE")
     print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_vgg16_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_arc3_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=channels)
     print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_vgg16_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_arc3_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
     print("TESTING COMBINED")
     print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\combined_vgg16_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    validate_on_database("data\\dataset_jaffe.csv", "models\\combined_arc3_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=channels)
     print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\combined_vgg16_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=3)
+    validate_on_database("data\\dataset_facesdb.csv", "models\\combined_arc3_model", 
+                n_classes, im_shape = (im_rows, im_cols), channels=channels)
 
     plt.show()
