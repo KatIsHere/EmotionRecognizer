@@ -6,6 +6,7 @@ import numpy as np
 from face_detector import init_model_dnn, find_faces_dnn
 from load_pics import load_img
 import random
+import cv2
 
 class DataPreprocessor:
 
@@ -124,7 +125,6 @@ class DataPreprocessor:
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
     
-
     def load_jaffe(self, img_dir, file_format='tiff', 
                 label_map = {'NE' : 0, 'AN' : 1, 'DI' : 2, 'FE' : 3, 'HA' : 4, 'SA' : 5, 'SU' : 6 }):
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
@@ -214,6 +214,55 @@ class DataPreprocessor:
         df.to_csv(filename)    
 
 
+class PrepareMUCT:
+    def __init__(self):
+        self._datafr = None
+        self.conf_threshold = 0.85
+
+    def preproses(self, img_dir, csv_filename):
+        self._datafr = pd.read_csv(csv_filename)
+        bbox = []
+        drop_rows = []
+        net = init_model_dnn()
+        self._datafr = self._datafr.head(3755)
+        for index, row in self._datafr.iterrows():
+            f_path = img_dir + row['name'] + '.jpg'
+            im = load_img(f_path, False, None)
+            if im is not None:
+                row['name'] = f_path
+                detections = find_faces_dnn(im, net=net)
+                confidence_max_pos = np.argmax(detections[0, 0, :, 2])
+
+                if detections[0, 0, confidence_max_pos, 2] > self.conf_threshold:
+                    (h, w) = im.shape[:2]
+                    box_norm =  detections[0, 0, 0, 3:7]
+                    box = box_norm * np.array([w, h, w, h])
+                    box = box.astype("int") 
+                    box -= (3, 3, 0, 0)
+                    box += (0, 0, 3, 3)
+                    # im = cv2.rectangle(im, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
+                    # im = cv2.putText(im, str(np.max(detections[0, 0, :, 2])), (box[0], box[1] - 5), 
+                    #         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                    # cv2.imshow("test", im)
+                    # cv2.waitKey(0)  
+                    bbox.append(box)
+                else:
+                    drop_rows.append(index)
+            else:
+                drop_rows.append(index)
+        self._datafr.drop(drop_rows)
+        bbox = np.array(bbox)
+        self._datafr = self._datafr.assign(bbox_x0 = bbox[:, 0])
+        self._datafr = self._datafr.assign(bbox_y0 = bbox[:, 1])
+        self._datafr = self._datafr.assign(bbox_x1 = bbox[:, 2])
+        self._datafr = self._datafr.assign(bbox_y1 = bbox[:, 3])
+
+
+    def save_csv(self, filename):
+        """Saves all loaded data to .csv file"""
+        assert isinstance(filename, str)
+        self._datafr.to_csv(filename)
+
 # 'contempt' is included in the dataset
 def prepare_data_with_contempt():
     dt = DataPreprocessor()
@@ -248,9 +297,12 @@ def prepare_data_no_contempt():
 
 if __name__ == "__main__":
     random.seed()
-    print("reading data...")
-    prepare_data_with_contempt()
-    print("data saved")    
-    print("reading data...")
-    prepare_data_no_contempt()
-    print("data saved")
+    prd = PrepareMUCT()
+    prd.preproses('data\\muct\\imgs\\', 'data\\muct\\muct76-opencv.csv')
+    prd.save_csv('data\\muct\\muct76_bbox.csv')
+    # print("reading data...")
+    # prepare_data_with_contempt()
+    # print("data saved")    
+    # print("reading data...")
+    # prepare_data_no_contempt()
+    # print("data saved")

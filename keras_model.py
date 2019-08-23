@@ -3,7 +3,7 @@ import numpy as np
 from keras.optimizers import SGD, Adam
 from keras.models import Sequential, model_from_json, Model 
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPool2D, MaxPooling2D
+from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, GlobalAveragePooling2D
 from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
@@ -50,13 +50,13 @@ class Emotion_Net:
         predictions = Dense(nb_classes, activation="softmax")(x)
         self._model =  Model(input = model.input, output = predictions)
 
-    def __transfer_vgg_face(self, input_shape, nb_classes):
-        data = loadmat('vgg_face_matconvnet/data/vgg_face.mat',
-               matlab_compatible=False,
-               struct_as_record=False)
-        net = data['net'][0,0]
-        l = net.layers
-        description = net.classes[0,0].description  
+    # def __transfer_vgg_face(self, input_shape, nb_classes):
+    #     data = loadmat('vgg_face_matconvnet/data/vgg_face.mat',
+    #            matlab_compatible=False,
+    #            struct_as_record=False)
+    #     net = data['net'][0,0]
+    #     l = net.layers
+    #     description = net.classes[0,0].description  
 
     def __arcitecture_3(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
@@ -75,7 +75,7 @@ class Emotion_Net:
         self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
         self._model.add(BatchNormalization(epsilon=0.0001))
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(GlobalAveragePooling2D())
         
         # tensor reforming 
         self._model.add(Flatten())

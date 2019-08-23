@@ -43,6 +43,29 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
     return x_data, y_data
     
 
+def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None):
+    # bbox_x0,bbox_y0,bbox_x1,bbox_y1
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
+    for index, row in df.iterrows():
+        im = load_img(img_dir + row['name'] + '.jpg', greyscale, None)
+        if greyscale:
+            im = im[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1']]
+        else:
+            im = im[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1'], :]
+        if new_size is not None:
+            im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
+        x_data.append(im)
+        coords = row.iloc[3:-4].values
+        w_org = new_size[1] / (row['bbox_x1'] -  row['bbox_x0'])
+        h_org = new_size[0] / (row['bbox_y1'] -  row['bbox_y0'])
+        for i in range(0, len(coords) - 1, 2):
+            coords[i] = coords[i] * w_org - row['bbox_x0']
+            coords[i + 1] = coords[i + 1] * h_org - row['bbox_y0']
+        y_data.append(coords)
+    return x_data, y_data
+
+
 # TODO: rename labels and cut out face before passing down
 def load_jaffe(folder_dir, f_format, greyscale=False,
                 lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):

@@ -1,5 +1,6 @@
 
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 from load_pics import load_dataset_csv, load_img
 from face_detector import faces_from_database_dnn, find_faces_dnn
 from keras.optimizers import SGD, Adam
@@ -10,9 +11,8 @@ import random
 import pandas as pd
 import cv2
 from prepare_dataset import DataPreprocessor
-import matplotlib.pyplot as plt
 
-def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
+def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(200, 200)):
     detections = find_faces_dnn(img)
     (h, w) = img.shape[:2]
     faces = []
@@ -20,7 +20,7 @@ def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
     for i in range(0, detections.shape[2]):
         confidence = detections[0, 0, i, 2]
 
-        if confidence > conf_threshold:
+        if confidence >= conf_threshold:
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box.astype("int")
             face = img[startY:endY, startX:endX]
@@ -30,30 +30,27 @@ def detect_and_classify(img, model, conf_threshold = 0.98, new_size=(300, 300)):
                 face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
             faces.append(np.resize(face, (face.shape[0], face.shape[1], 1)))
             bboxes.append([(startX, startY), (endX, endY)])
-    
-    expressions = model.predict(np.array(faces))
-    for bbox in bboxes:
-        img = cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 2)
-        for espr in range(0, expressions.shape[0]):
-            img = cv2.putText(img, str(expressions[espr][0]), bbox[0], 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][1]), (bbox[0][0] + 40, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][2]), (bbox[0][0] + 80, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][3]), (bbox[0][0] + 120, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][4]), (bbox[0][0] + 160, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][5]), (bbox[0][0] + 200, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][6]), (bbox[0][0] + 240, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            img = cv2.putText(img, str(expressions[espr][7]), (bbox[0][0] + 280, bbox[0][1]), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                
+    faces = np.array(faces, dtype='float32')
+    faces /= 255.0
+    expressions = model.predict(faces)
+    for i in range(len(bboxes)):
+        img = cv2.rectangle(img, bboxes[i][0], bboxes[i][1], (0, 0, 255), 2)
+        img = cv2.putText(img, str(np.argmax(expressions[i])), (bboxes[i][0][0], bboxes[i][0][1] - 5), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     return img
+
+
+def test_model(model_id, model_folder = "models\\"):
+        model = Emotion_Net()
+        model.load_model(model_folder + model_id + "model.json")
+        model.load_weights(model_folder + model_id + "model.h5")
+        test_imgs = ['data\\test_img.png', 'data\\test_img2.jpg', 'data\\test_img3.jpg', 'data\\test_img4.jpg']
+        for img_name in test_imgs:
+                img = load_img(img_name, False, None)
+                img = detect_and_classify(img, model)
+                cv2.imshow(img_name, img)
+                cv2.waitKey(0)        
 
 
 def predict_and_vizualize(csv_filename):
@@ -68,6 +65,15 @@ def predict_and_vizualize(csv_filename):
         cv2.imshow('img %d'.format(index), img)
         cv2.waitKey(0)
 
+def normalize_data(x_data, y_data, im_rows, im_cols, channels=1):
+        # normalizing and preparing data
+        x_data = np.array(x_data, dtype='float32')
+        y_data = np.array(y_data, dtype='int32')
+        n_classes = np.unique(y_data).shape[0]
+        x_data /= 255.0   
+        y_data = np_utils.to_categorical(y_data, n_classes)
+        x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
+        return x_data, y_data, n_classes
 
 def validate_on_database(csv_filename, model_filename, n_classes, im_shape, channels=1):
         gray = True if channels==1 else False
@@ -83,18 +89,6 @@ def validate_on_database(csv_filename, model_filename, n_classes, im_shape, chan
         x_val = x_val.reshape(x_val.shape[0], im_shape[0], im_shape[1], channels)
 
         model.evaluate_accur(x_val, y_val)
-
-
-def normalize_data(x_data, y_data, im_rows, im_cols, channels=1):
-        # normalizing and preparing data
-        x_data = np.array(x_data)
-        y_data = np.array(y_data, dtype='int32')
-        x_data = x_data.astype('float32')
-        n_classes = np.unique(y_data).shape[0]
-        x_data /= 255.0   
-        y_data = np_utils.to_categorical(y_data, n_classes)
-        x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
-        return x_data, y_data, n_classes
 
 
 def train_keras_model(dataset_csv, 
@@ -209,34 +203,35 @@ def train_keras_model_with_validation(dataset_csv, validation_csv,
 # TODO: need to create separate validation database
 # TODO: try extracting facial features
 if __name__ == "__main__":
-    random.seed()
-    #predict_and_vizualize('data\\dataset.csv')
-    (im_rows, im_cols) = (200, 200)
-    channels = 1
-    print("KANADE")
-    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=60,
-                       load_weights=False, model_id='kanade_arc3_', plot_metrix=True, channels=channels, arc=3)    
-    #print("CUSTOM RESNET")
-    #n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
-    #                   load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
-    print("CUSTOM")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=60,
-                       load_weights=False, model_id='combined_arc3_', plot_metrix=True, channels=channels, arc=3)
-    #n_classes = 7
-    print("TESTING KANADE")
-    print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_arc3_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
-    print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_arc3_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     random.seed()
+#     #predict_and_vizualize('data\\dataset.csv')
+#     (im_rows, im_cols) = (200, 200)
+#     channels = 1
+#     print("KANADE")
+#     n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=60,
+#                        load_weights=False, model_id='kanade_arc3_', plot_metrix=True, channels=channels, arc=3)    
+#     #print("CUSTOM RESNET")
+#     #n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
+#     #                   load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
+#     print("CUSTOM")
+#     n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=60,
+#                        load_weights=False, model_id='combined_arc3_', plot_metrix=True, channels=channels, arc=3)
+#     #n_classes = 7
+#     print("TESTING KANADE")
+#     print("Testing on jaffe")
+#     validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_arc3_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("Testing on facesdb")
+#     validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_arc3_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
-    print("TESTING COMBINED")
-    print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\combined_arc3_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
-    print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\combined_arc3_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("TESTING COMBINED")
+#     print("Testing on jaffe")
+#     validate_on_database("data\\dataset_jaffe.csv", "models\\combined_arc3_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("Testing on facesdb")
+#     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_arc3_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     plt.show()
 
-    plt.show()
+        test_model('combined_arc3_')
