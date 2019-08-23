@@ -150,7 +150,7 @@ def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(144, 144)):
     return img
 
 
-
+# TODO: need to fix the perspective of label coords
 if __name__=="__main__":
     random.seed()
     im_rows, im_cols, channels = 144, 144, 1

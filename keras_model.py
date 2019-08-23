@@ -10,6 +10,8 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.applications.vgg16 import VGG16
 from keras.applications.densenet import DenseNet121
 from keras.applications.resnet50 import ResNet50
+from keras.applications.mobilenet_v2 import MobileNetV2
+from keras.applications.mobilenet import MobileNet
 from scipy.io import loadmat
 
 class Emotion_Net:
@@ -22,6 +24,26 @@ class Emotion_Net:
 
     def __transfer_vgg16(self, input_shape, nb_classes):
         model = VGG16(weights = "imagenet", include_top=False, input_shape = input_shape)
+        x = model.output
+        x = Flatten()(x)
+        x = Dense(1024, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1024, activation="relu")(x)
+        predictions = Dense(nb_classes, activation="softmax")(x)
+        self._model =  Model(input = model.input, output = predictions)
+
+    def __transfer_mobilenet_v2(self, input_shape, nb_classes):
+        model = MobileNetV2(weights = "imagenet", include_top=False, input_shape = input_shape)
+        x = model.output
+        x = Flatten()(x)
+        x = Dense(1024, activation="relu")(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1024, activation="relu")(x)
+        predictions = Dense(nb_classes, activation="softmax")(x)
+        self._model =  Model(input = model.input, output = predictions)
+
+    def __transfer_mobilenet(self, input_shape, nb_classes):
+        model = MobileNet(weights = "imagenet", include_top=False, input_shape = input_shape)
         x = model.output
         x = Flatten()(x)
         x = Dense(1024, activation="relu")(x)
@@ -78,7 +100,7 @@ class Emotion_Net:
         self._model.add(GlobalAveragePooling2D())
         
         # tensor reforming 
-        self._model.add(Flatten())
+        #self._model.add(Flatten())
         self._model.add(Dense(512, activation = "relu"))
         self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(256, activation = "relu"))
@@ -94,6 +116,10 @@ class Emotion_Net:
             self.__transfer_resnet50(input_shape, n_classes)
         elif arc==3:
             self.__arcitecture_3(input_shape, n_classes)
+        elif arc==4:
+            self.__transfer_mobilenet(input_shape, n_classes)        
+        elif arc==5:
+            self.__transfer_mobilenet_v2(input_shape, n_classes)
 
     def __arcitecture_1(self, input_shape, n_classes):
         self._model.add(Conv2D(32, (7, 7), padding = "same", input_shape = input_shape, activation = 'relu'))
