@@ -24,30 +24,32 @@ class Facial_Feature_Net:
 
 
     def init_model(self, input_shape, n_features):
+        self._model.add(BatchNormalization(input_shape = input_shape))
+
         self._model.add(Conv2D(24, (5, 5), padding = "same", input_shape = input_shape, 
-                            activation = 'relu', kernel_initializer='he_normal'))
+                            activation = 'sigmoid', kernel_initializer='he_normal'))
         self._model.add(BatchNormalization(input_shape = input_shape))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         
-        self._model.add(Conv2D(36, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
-        self._model.add(Conv2D(36, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(36, (5, 5), padding = "same", input_shape = input_shape, activation = 'sigmoid'))
+        self._model.add(Conv2D(36, (5, 5), padding = "same", input_shape = input_shape, activation = 'sigmoid'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         
         #self._model.add(Conv2D(48, (5, 5), padding = "same", input_shape = input_shape, activation = 'relu'))
         #self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         
-        self._model.add(Conv2D(48, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(48, (3, 3), padding = "same", input_shape = input_shape, activation = 'sigmoid'))
         self._model.add(BatchNormalization(input_shape = input_shape))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         
-        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'sigmoid'))
         self._model.add(GlobalAveragePooling2D())
         
-        self._model.add(Dense(512, activation = "relu", kernel_initializer='he_normal'))
+        self._model.add(Dense(512, activation = "sigmoid", kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
-        self._model.add(Dense(256, activation = "relu", kernel_initializer='he_normal'))
+        self._model.add(Dense(256, activation = "sigmoid", kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
-        self._model.add(Dense(n_features, activation = 'softmax'))
+        self._model.add(Dense(n_features))
 
 
     def train(self, x_train, y_train, 
@@ -135,50 +137,70 @@ def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(144, 144)):
             bboxes.append([(startX, startY), (endX, endY)])
     faces = np.array(faces, dtype='float32')
     bboxes = np.array(bboxes).reshape(faces.shape[0], 2, 2)
-    faces /= 255.0
     face_features = model.predict(faces)
     for i in range(face_features.shape[0]):
-        for j in range(0, face_features[i].shape[0] - 1, 2):
+         for j in range(0, face_features[i].shape[0] - 1, 2):
             org_h = bboxes[i, 1, 1] - bboxes[i, 0, 1] 
             org_w = bboxes[i, 1, 0] - bboxes[i, 0, 0] 
-            img = cv2.circle(img, (int(face_features[i][j] * org_w + bboxes[i, 1, 0]), 
-                                   int(face_features[i][j + 1] * org_h + bboxes[i, 1, 1])), 
-                                    1, (0, 0, 255), 1)
-    for box in bboxes:
-        img = cv2.rectangle(img, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 0, 255), 2)
+            faces[i] = cv2.circle(faces[i], (int(face_features[i][j] * org_w + bboxes[i, 1, 0]), 
+                                    int(face_features[i][j + 1] * org_h + bboxes[i, 1, 1])), 
+                                     1, (0, 0, 255), 1)
 
-    return img
+
+    # faces /= 255.0
+    # face_features = model.predict(faces)
+    # for i in range(face_features.shape[0]):
+    #     for j in range(0, face_features[i].shape[0] - 1, 2):
+    #         org_h = bboxes[i, 1, 1] - bboxes[i, 0, 1] 
+    #         org_w = bboxes[i, 1, 0] - bboxes[i, 0, 0] 
+    #         img = cv2.circle(img, (int(face_features[i][j] * org_w + bboxes[i, 1, 0]), 
+    #                                int(face_features[i][j + 1] * org_h + bboxes[i, 1, 1])), 
+    #                                 1, (0, 0, 255), 1)
+    # for box in bboxes:
+    #     img = cv2.rectangle(img, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 0, 255), 2)
+
+    return faces
 
 
 # TODO: need to fix the perspective of label coords
 if __name__=="__main__":
     random.seed()
     im_rows, im_cols, channels = 144, 144, 1
+    
     Model = Facial_Feature_Net()
-    #Model.load_model("models\\facial_model.json")
-    #Model.load_weights("models\\facial_model.h5")
+    Model.load_model("models\\facial_model.json")
+    Model.load_weights("models\\facial_model_sm_2.h5")
 
-    # x_data, y_data = load_facial_dataset_csv('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols))
-    # x_data = np.array(x_data, dtype='float32')
-    # y_data = np.array(y_data, dtype='float32')
+    #x_data, y_data = load_facial_dataset_csv('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols))
+    #x_data = np.array(x_data, dtype='float32')
+    #y_data = np.array(y_data, dtype='float32')
+
+    # for i in range(x_data.shape[0]):
+    #     img = x_data[i, :, :, :]
+    #     for j in range(0, y_data.shape[1] - 1, 2):
+    #         img = cv2.circle(img, (y_data[i, j], y_data[i, j + 1]), 1, (0, 0, 255), 1)
+    #     cv2.imshow("img_name", img)
+    #     cv2.waitKey(0) 
+    
     # n_features = y_data.shape[1]
     # x_data /= 255.0   
     # #y_data = np_utils.to_categorical(y_data, n_features)
     # x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
-    #x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=random.seed())
+    # x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=random.seed())
 
 
-    # Model.init_model(input_shape=(im_rows, im_cols, channels), n_features=n_features)
+    # #Model.init_model(input_shape=(im_rows, im_cols, channels), n_features=n_features)
     # history_call = Model.train(x_data, y_data, 
     #                             batch_size=32, 
-    #                             n_epochs=150, 
-    #                             optim = Adam(lr=0.00005),
-    #                             save_best_to="models\\facial_model.hdf5")
+    #                             n_epochs=2600, 
+    #                             optim = 'rmsprop',
+    #                             save_best = False,
+    #                             save_best_to="models\\facial_model.h5")
 
 
     # #Model.evaluate_accur(x_test, y_test)
     # Model.save_model("models\\facial_model.json")
-    # Model.save_weights("models\\facial_model.h5")
+    # Model.save_weights("models\\facial_model_sm_2.h5")
 
     # plt.subplot(2,2,1)
     # plt.title('training loss')
@@ -199,6 +221,7 @@ if __name__=="__main__":
             'data\\kanade\\cohn-kanade-images\\S022\\004\\S022_004_00000006.png']
     for img_name in images:
         img = load_img(img_name, False, None)
-        img = detect_and_classify(img, Model)
-        cv2.imshow(img_name, img)
-        cv2.waitKey(0) 
+        faces = detect_and_classify(img, Model)
+        for face in faces:
+            cv2.imshow(img_name, face)
+            cv2.waitKey(0) 

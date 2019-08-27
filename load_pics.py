@@ -41,6 +41,18 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
         x_data.append(im)
         y_data.append(row['label'])
     return x_data, y_data
+
+
+def load_dataset_no_face(csv_filename, new_size = None):
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
+    for index, row in df.iterrows():
+        im = np.array(row['pixels'])
+        if new_size is not None:
+            im = np.resize(im, new_size)
+        x_data.append(im)
+        y_data.append(row['emotion'])
+    return x_data, y_data
     
 
 def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None):
@@ -57,8 +69,8 @@ def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)
         coords = row.iloc[3:-4].values
-        w_org = 1 / (row['bbox_x1'] -  row['bbox_x0'])
-        h_org = 1 / (row['bbox_y1'] -  row['bbox_y0'])
+        w_org = new_size[1] / (row['bbox_x1'] -  row['bbox_x0'])
+        h_org = new_size[0] / (row['bbox_y1'] -  row['bbox_y0'])
         for i in range(0, len(coords) - 1, 2):
             coords[i] = (coords[i] - row['bbox_x0']) * w_org
             coords[i + 1] = (coords[i + 1] - row['bbox_y0']) * h_org

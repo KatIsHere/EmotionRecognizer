@@ -52,6 +52,14 @@ def test_model(model_id, model_folder = "models\\"):
                 cv2.imshow(img_name, img)
                 cv2.waitKey(0)        
 
+def open_test_im(csv_filename):
+        df = pd.read_csv(csv_filename)
+        smp = df.sample(5, random_state=42)
+        for index, row in smp.iterrows():
+                img = np.array(row['pixels'])
+                img = img.reshape((48, 48, 1))
+                cv2.imshow('img 1', img)
+                cv2.waitKey(0)
 
 def predict_and_vizualize(csv_filename):
     model = Emotion_Net()
@@ -204,6 +212,9 @@ def train_keras_model_with_validation(dataset_csv, validation_csv,
 # TODO: try extracting facial features
 if __name__ == "__main__":
     random.seed()
+    
+    open_test_im('data\\fer2013.csv')
+
     #predict_and_vizualize('data\\dataset.csv')
     (im_rows, im_cols) = (224, 224)
     channels = 3
