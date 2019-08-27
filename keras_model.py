@@ -3,7 +3,7 @@ import numpy as np
 from keras.optimizers import SGD, Adam
 from keras.models import Sequential, model_from_json, Model 
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, GlobalAveragePooling2D
+from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, GlobalAveragePooling2D, GlobalMaxPool2D
 from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
@@ -62,10 +62,13 @@ class Emotion_Net:
         predictions = Dense(nb_classes, activation="softmax")(x)
         self._model =  Model(input = model.input, output = predictions)
 
-    def __transfer_resnet50(self, input_shape, nb_classes):
+    def __transfer_resnet50(self, input_shape, nb_classes, global_max = False):
         model = ResNet50(weights = "imagenet", include_top=False, input_shape = input_shape)
         x = model.output
-        x = Flatten()(x)
+        if global_max:
+            x = GlobalMaxPool2D()(x)
+        else:
+            x = Flatten()(x)
         x = Dense(1024, activation="relu")(x)
         x = Dropout(0.5)(x)
         x = Dense(512, activation="relu")(x)
@@ -114,7 +117,7 @@ class Emotion_Net:
         elif arc==1:
             self.__transfer_vgg16(input_shape, n_classes)
         elif arc==2:
-            self.__transfer_resnet50(input_shape, n_classes)
+            self.__transfer_resnet50(input_shape, n_classes, True)
         elif arc==3:
             self.__arcitecture_3(input_shape, n_classes)
         elif arc==4:
@@ -230,7 +233,7 @@ class Emotion_Net:
         datagen = ImageDataGenerator(
                 featurewise_center=True,
                 featurewise_std_normalization=True,
-                rotation_range=30,
+                rotation_range=20,
                 width_shift_range=0.2,
                 height_shift_range=0.2,
                 horizontal_flip=True)

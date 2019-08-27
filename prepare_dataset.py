@@ -9,6 +9,7 @@ import random
 import cv2
 
 class DataPreprocessor:
+    #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
 
     def __init__(self):
         self._jaffe_data = None
@@ -85,14 +86,14 @@ class DataPreprocessor:
 
     def load_facesdb(self, img_dir, file_format='tif', 
                     label_map = {0 : 0, 1: 4, 2 : 5, 3 : 6, 4: 1, 5 : 2, 6 : 3}):
-        # label mapping     no contempt     with contempt
-        # 0 - Neutral    ->     0        ->      0
-        # 1 - Happy      ->     4        ->      5
-        # 2 - Sadness    ->     5        ->      6
-        # 3 - Surprise   ->     6        ->      7
-        # 4 - Anger      ->     1        ->      1
-        # 5 - Disgust    ->     2        ->      3
-        # 6 - Fear       ->     3        ->      4
+        # label mapping     no contempt     with contempt   |       New data
+        # 0 - Neutral    ->     0        ->      0          |           6
+        # 1 - Happy      ->     4        ->      5          |           3
+        # 2 - Sadness    ->     5        ->      6          |           4
+        # 3 - Surprise   ->     6        ->      7          |           5
+        # 4 - Anger      ->     1        ->      1          |           0
+        # 5 - Disgust    ->     2        ->      3          |           1
+        # 6 - Fear       ->     3        ->      4          |           2
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
         labels, data_path = [], []
         bbox, bbox_norm = [], []
@@ -307,29 +308,27 @@ def prepare_data_with_contempt():
 
 # 'contempt' is excluded from the dataset
 def prepare_data_no_contempt():
+    #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
     dt = DataPreprocessor()
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=False)
-    dt.save_csv('data\\dataset_kanade.csv')
-    dt.load_facesdb('data\\facesdb\\')
-    dt.load_jaffe("data\\jaffe\\")
+    #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=False)
+    #dt.save_csv('data\\dataset_kanade.csv')
+    dt.load_facesdb('data\\facesdb\\', label_map = {0 : 6, 1: 3, 2 : 4, 3 : 5, 4: 0, 5 : 1, 6 : 2})
+    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 6, 'AN' : 0, 'DI' : 1, 'FE' : 2, 'HA' : 3, 'SA' : 4, 'SU' : 5 })
     dt.save_csv('data\\dataset.csv')
-    dt.clear()
-    dt.load_facesdb('data\\facesdb\\')
-    dt.save_csv('data\\dataset_facesdb.csv')
-    dt.clear()
-    dt.load_jaffe("data\\jaffe\\")
-    dt.save_csv('data\\dataset_jaffe.csv')
+    # dt.clear()
+    # dt.load_facesdb('data\\facesdb\\')
+    # dt.save_csv('data\\dataset_facesdb.csv')
+    # dt.clear()
+    # dt.load_jaffe("data\\jaffe\\")
+    # dt.save_csv('data\\dataset_jaffe.csv')
 
 
 if __name__ == "__main__":
     random.seed()
-    dt = DataPreprocessor()
+    #dt = DataPreprocessor()
     #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
-    dt.load_and_pross_fer2013('data\\fer2013.csv', 'data\\fer2013_bbox.csv')
+    #dt.load_and_pross_fer2013('data\\fer2013.csv', 'data\\fer2013_bbox.csv')
 
-    # print("reading data...")
-    # prepare_data_with_contempt()
-    # print("data saved")    
-    # print("reading data...")
-    # prepare_data_no_contempt()
-    # print("data saved")
+    print("reading data...")
+    prepare_data_no_contempt()
+    print("data saved")

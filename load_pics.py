@@ -48,8 +48,9 @@ def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
     x_data, y_data = [], []
     for index, row in df.iterrows():
         im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+        im = np.resize(im, (48, 48))
         if new_size is not None:
-            im = np.resize(im, new_size)
+            im = cv2.resize(im, new_size, cv2.INTER_AREA)
         if greyscale:
             im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         x_data.append(im)
