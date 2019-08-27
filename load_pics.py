@@ -43,15 +43,17 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
     return x_data, y_data
 
 
-def load_dataset_no_face(csv_filename, new_size = None):
+def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = np.array(row['pixels'])
+        im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
         if new_size is not None:
             im = np.resize(im, new_size)
+        if greyscale:
+            im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         x_data.append(im)
-        y_data.append(row['emotion'])
+        y_data.append(int(row['emotion']))
     return x_data, y_data
     
 

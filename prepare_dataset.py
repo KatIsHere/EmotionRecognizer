@@ -157,6 +157,31 @@ class DataPreprocessor:
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
 
+    def load_and_pross_fer2013(self, csv_file, csv_newfile, im_size = (48, 48)):
+        df = pd.read_csv(csv_file)
+        bbox = []
+        net = init_model_dnn()
+        for index, row in df.iterrows():
+            im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+            im = np.reshape(im, im_size)
+            im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+            detections = find_faces_dnn(im, net=net)
+            confidence_max_pos = np.argmax(detections[0, 0, :, 2])
+
+            if detections[0, 0, confidence_max_pos, 2] > self.conf_threshold:
+                    (h, w) = im_size
+                    box_norm =  detections[0, 0, 0, 3:7]
+                    box = box_norm * np.array([w, h, w, h])
+                    bbox.append(box.astype("int"))
+
+        bbox = np.array(bbox)
+        df = df.assign(x0 = bbox[:, 0])
+        df = df.assign(y0 = bbox[:, 1])
+        df = df.assign(x1 = bbox[:, 2])
+        df = df.assign(y1 = bbox[:, 3])
+        assert isinstance(csv_newfile, str)
+        df.to_csv(csv_newfile)
+
     def clear(self):
         del self._kanade_data
         self._kanade_data = None
@@ -263,6 +288,7 @@ class PrepareMUCT:
         assert isinstance(filename, str)
         self._datafr.to_csv(filename)
 
+
 # 'contempt' is included in the dataset
 def prepare_data_with_contempt():
     dt = DataPreprocessor()
@@ -297,9 +323,10 @@ def prepare_data_no_contempt():
 
 if __name__ == "__main__":
     random.seed()
-    prd = PrepareMUCT()
-    prd.preproses('data\\muct\\imgs\\', 'data\\muct\\muct76-opencv.csv')
-    prd.save_csv('data\\muct\\muct76_bbox.csv')
+    dt = DataPreprocessor()
+    #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
+    dt.load_and_pross_fer2013('data\\fer2013.csv', 'data\\fer2013_bbox.csv')
+
     # print("reading data...")
     # prepare_data_with_contempt()
     # print("data saved")    

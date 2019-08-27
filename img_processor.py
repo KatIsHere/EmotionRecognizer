@@ -1,7 +1,7 @@
 
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from load_pics import load_dataset_csv, load_img
+from load_pics import load_dataset_csv, load_img, load_dataset_no_face
 from face_detector import faces_from_database_dnn, find_faces_dnn
 from keras.optimizers import SGD, Adam
 from keras_model import Emotion_Net
@@ -56,8 +56,10 @@ def open_test_im(csv_filename):
         df = pd.read_csv(csv_filename)
         smp = df.sample(5, random_state=42)
         for index, row in smp.iterrows():
-                img = np.array(row['pixels'])
-                img = img.reshape((48, 48, 1))
+                im = np.array([int(x) for x in row['pixels'].split(' ')])
+                img = np.reshape(im, (48, 48, 1))
+                img = img.astype('float')
+                img /= 255.0
                 cv2.imshow('img 1', img)
                 cv2.waitKey(0)
 
@@ -111,12 +113,12 @@ def train_keras_model(dataset_csv,
                         arc=0):
         """Trains a model based on kanade database and saves it's structure and weights"""
         gray = True if channels==1 else False
-        x_data, y_data = load_dataset_csv(dataset_csv, new_size=im_shape, greyscale=gray)
         im_rows, im_cols = im_shape
+        x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols, channels), greyscale=gray)
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
-        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.1, random_state=random.seed())
 
         Model = Emotion_Net()
 
@@ -132,7 +134,6 @@ def train_keras_model(dataset_csv,
                 history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.h5", \
                         batch_size=16, n_epochs=epocs, optim=Adam(lr=0.0001))
         if plot_metrix:
-                
                 plt.subplot(2,2,1)
                 plt.title('training loss')
                 plt.plot(history_call.history['loss'])
@@ -213,40 +214,29 @@ def train_keras_model_with_validation(dataset_csv, validation_csv,
 if __name__ == "__main__":
     random.seed()
     
-    open_test_im('data\\fer2013.csv')
+    #open_test_im('data\\fer2013.csv')
 
     #predict_and_vizualize('data\\dataset.csv')
-    (im_rows, im_cols) = (224, 224)
+    (im_rows, im_cols) = (48, 48)
     channels = 3
-    print("KANADE")
-    n_classes = train_keras_model('data\\dataset_kanade.csv', im_shape = (im_rows, im_cols), epocs=20,
-                       load_weights=False, model_id='kanade_mobnet_', plot_metrix=True, channels=channels, arc=4)    
-    #print("CUSTOM RESNET")
-    #n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=30,
-    #                   load_weights=False, model_id='combined_resnet_', plot_metrix=True, channels=3, arc=2)
-    print("CUSTOM")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=35,
-                       load_weights=False, model_id='combined_mobnet_', plot_metrix=True, channels=channels, arc=4)
-
-    print("CUSTOM")
-    n_classes = train_keras_model('data\\dataset.csv', im_shape = (im_rows, im_cols), epocs=35,
-                       load_weights=False, model_id='combined_mobnet_v2_', plot_metrix=True, channels=channels, arc=5)
-    #n_classes = 7
-    print("TESTING KANADE")
-    print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_mobnet_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
-    print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_mobnet_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
+    n_classes = train_keras_model('data\\fer2013.csv', im_shape = (im_rows, im_cols), epocs=30,
+                       load_weights=False, model_id='resnet_', plot_metrix=True, channels=channels, arc=2)    
+#     n_classes = 7
+#     print("TESTING KANADE")
+#     print("Testing on jaffe")
+#     validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_mobnet_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("Testing on facesdb")
+#     validate_on_database("data\\dataset_facesdb.csv", "models\\kanade_mobnet_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
-    print("TESTING COMBINED")
-    print("Testing on jaffe")
-    validate_on_database("data\\dataset_jaffe.csv", "models\\combined_mobnet_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
-    print("Testing on facesdb")
-    validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("TESTING COMBINED")
+#     print("Testing on jaffe")
+#     validate_on_database("data\\dataset_jaffe.csv", "models\\combined_mobnet_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
+#     print("Testing on facesdb")
+#     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     plt.show()
 
-      # test_model('combined_arc3_')
+#     test_model('combined_arc3_')

@@ -68,7 +68,8 @@ class Emotion_Net:
         x = Flatten()(x)
         x = Dense(1024, activation="relu")(x)
         x = Dropout(0.5)(x)
-        x = Dense(1024, activation="relu")(x)
+        x = Dense(512, activation="relu")(x)
+        x = Dropout(0.5)(x)
         predictions = Dense(nb_classes, activation="softmax")(x)
         self._model =  Model(input = model.input, output = predictions)
 

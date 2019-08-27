@@ -75,7 +75,7 @@ def cut_out_faces_dnn(im, net=None, new_size=None, to_greyscale=False, conf_thre
 def find_faces_dnn(im, net=None):
     if net is None:
         net = init_model_dnn()
-    blob = cv2.dnn.blobFromImage(cv2.resize(im, (300, 300)), 1.0, (300, 300), [104, 117, 123], False, False)
+    blob = cv2.dnn.blobFromImage(cv2.resize(im, (300, 300), interpolation = cv2.INTER_AREA), 1.0, (300, 300), [104, 117, 123], False, False)
     net.setInput(blob)
     detections = net.forward()
             
