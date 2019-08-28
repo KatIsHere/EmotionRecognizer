@@ -18,7 +18,9 @@ class DataPreprocessor:
         self.conf_threshold=0.97
 
     # for each labeled foder loads first and two last images (the position of the face usually stays the same)
-    def load_kanade(self, label_dir, img_dir, file_format='png', netral_percentage=0.5, include_contempt=False):
+    def load_kanade(self, label_dir, img_dir, file_format='png', 
+                    netral_percentage=0.5, 
+                    label_map = {0 : 6, 1: 0, 3 : 1, 4 : 2, 5: 3, 6 : 4, 7 : 5, 2:None}):
         """ Loads kanade dataset
 
             in: 
@@ -63,10 +65,8 @@ class DataPreprocessor:
                                 bbox.append(box)
                                 bbox_norm.append(box_norm)
                                 data_path.append(pics_path)
-                                if labl > 2.0 and not include_contempt:
-                                    labels.append(labl - 1.)
-                                else:
-                                    labels.append(labl)
+                                if label_map[labl] is not None:
+                                    labels.append(label_map[labl])
 
                         if random.random() >= netral_percentage:    
                             # saves first neutral frame
@@ -293,7 +293,7 @@ class PrepareMUCT:
 # 'contempt' is included in the dataset
 def prepare_data_with_contempt():
     dt = DataPreprocessor()
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
     dt.save_csv('data\\dataset_kanade_8.csv')
     dt.load_facesdb('data\\facesdb\\', label_map = {0 : 0, 1: 5, 2 : 6, 3 : 7, 4: 1, 5 : 3, 6 : 4})
     dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 })
@@ -310,7 +310,7 @@ def prepare_data_with_contempt():
 def prepare_data_no_contempt():
     #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
     dt = DataPreprocessor()
-    #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=False)
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
     #dt.save_csv('data\\dataset_kanade.csv')
     dt.load_facesdb('data\\facesdb\\', label_map = {0 : 6, 1: 3, 2 : 4, 3 : 5, 4: 0, 5 : 1, 6 : 2})
     dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 6, 'AN' : 0, 'DI' : 1, 'FE' : 2, 'HA' : 3, 'SA' : 4, 'SU' : 5 })

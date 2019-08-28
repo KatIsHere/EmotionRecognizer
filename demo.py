@@ -6,13 +6,13 @@ from img_processor import detect_and_classify
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     model = Emotion_Net()
-    model.load_model("models\\combined_model.json")
-    model.load_weights("models\\combined_model.h5")
+    model.load_model("models\\resnet_v22_model.json")
+    model.load_weights("models\\resnet_v22_model.h5")
 
     while(True):
         ret, frame = cap.read()
 
-        frame = detect_and_classify(frame, model, new_size=(200, 200), channels=1)
+        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3)
 
         cv2.imshow('vid', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):

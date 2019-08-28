@@ -51,7 +51,7 @@ def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
         im = np.resize(im, (48, 48))
         if new_size is not None:
             im = cv2.resize(im, new_size, cv2.INTER_AREA)
-        if greyscale:
+        if not greyscale:
             im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         x_data.append(im)
         y_data.append(int(row['emotion']))

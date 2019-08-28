@@ -109,16 +109,22 @@ def train_keras_model(dataset_csv,
                         im_shape, 
                         model_folder = 'models\\', 
                         augment=False,
-                        model_id='combined_', 
+                        detect_face=True,
+                        model_id='', 
+                        save_model_id = '',
                         load_weights=True, 
                         plot_metrix=False, 
                         channels=1,
                         epocs=50,
+                        batch_size=32,
                         arc=0):
         """Trains a model based on kanade database and saves it's structure and weights"""
         gray = True if channels==1 else False
         im_rows, im_cols = im_shape
-        x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols, channels), greyscale=gray)
+        if detect_face:
+                x_data, y_data = load_dataset_csv(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
+        else:
+                x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
@@ -132,11 +138,13 @@ def train_keras_model(dataset_csv,
         else:
                 Model.init_model(input_shape, n_classes, arc=arc)
         if augment:
-                history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.h5", \
-                        batch_size=32, n_epochs=epocs, optim=Adam(lr=0.0005))
+                history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, 
+                        save_best_to=model_folder + save_model_id + "model.h5", \
+                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0005))
         else:
-                history_call = Model.train(x_train, y_train, x_test, y_test, save_best_to=model_folder + model_id + "model.h5", \
-                        batch_size=32, n_epochs=epocs, optim=Adam(lr=0.0005))
+                history_call = Model.train(x_train, y_train, x_test, y_test, 
+                        save_best_to=model_folder + save_model_id + "model.h5", \
+                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0005))
         if plot_metrix:
                 plt.subplot(2,2,1)
                 plt.title('training loss')
@@ -155,8 +163,8 @@ def train_keras_model(dataset_csv,
                 plt.plot(history_call.history['val_acc'])
 
         Model.evaluate_accur(x_test, y_test)
-        Model.save_model(model_folder + model_id + "model.json")
-        Model.save_weights(model_folder + model_id + "model.h5")
+        Model.save_model(model_folder + save_model_id + "model.json")
+        Model.save_weights(model_folder + save_model_id + "model.h5")
         return n_classes
 
 
@@ -215,14 +223,24 @@ def train_keras_model_with_validation(dataset_csv, validation_csv,
 if __name__ == "__main__":
     random.seed()
     
-    open_test_im('data\\fer2013.csv')
+    #open_test_im('data\\fer2013.csv')
 
     #predict_and_vizualize('data\\dataset.csv')
     (im_rows, im_cols) = (96, 96)
     channels = 3
     n_classes = 7
-    n_classes = train_keras_model('data\\fer2013.csv', im_shape = (im_rows, im_cols), epocs=30, augment=True,
-                       load_weights=False, model_id='resnet_v2_', plot_metrix=True, channels=channels, arc=2)    
+    n_classes = train_keras_model('data\\fer2013.csv', 
+                                im_shape=(im_rows, im_cols), 
+                                channels=channels, 
+                                epocs=35, 
+                                batch_size=32,
+                                augment=True, 
+                                detect_face=False,
+                                load_weights=False, 
+                                model_id='ins_resnet_v1_', 
+                                save_model_id='ins_resnet_v1_',
+                                plot_metrix=True, 
+                                arc=3)    
 #     print("TESTING KANADE")
 #     print("Testing on jaffe")
 #     validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_mobnet_model", 
@@ -232,7 +250,7 @@ if __name__ == "__main__":
 #                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
     print("TESTING COMBINED")
-    validate_on_database("data\\dataset.csv", "models\\resnet_model", 
+    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v1_", 
                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
 #     print("Testing on facesdb")
 #     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 
