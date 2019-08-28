@@ -128,7 +128,7 @@ def train_keras_model(dataset_csv,
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
-        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.1, random_state=random.seed())
+        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.15, random_state=random.seed())
 
         Model = Emotion_Net()
 
@@ -164,7 +164,7 @@ def train_keras_model(dataset_csv,
 
         Model.evaluate_accur(x_test, y_test)
         Model.save_model(model_folder + save_model_id + "model.json")
-        Model.save_weights(model_folder + save_model_id + "model.h5")
+        #Model.save_weights(model_folder + save_model_id + "model.h5")
         return n_classes
 
 
@@ -229,14 +229,14 @@ if __name__ == "__main__":
     (im_rows, im_cols) = (96, 96)
     channels = 3
     n_classes = 7
-    n_classes = train_keras_model('data\\fer2013.csv', 
+    n_classes = train_keras_model('data\\dataset.csv', 
                                 im_shape=(im_rows, im_cols), 
                                 channels=channels, 
-                                epocs=35, 
+                                epocs=5, 
                                 batch_size=32,
-                                augment=True, 
-                                detect_face=False,
-                                load_weights=False, 
+                                augment=False, 
+                                detect_face=True,
+                                load_weights=True, 
                                 model_id='ins_resnet_v1_', 
                                 save_model_id='ins_resnet_v1_',
                                 plot_metrix=True, 
@@ -250,7 +250,7 @@ if __name__ == "__main__":
 #                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
     print("TESTING COMBINED")
-    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v1_", 
+    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v1_model", 
                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
 #     print("Testing on facesdb")
 #     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 

@@ -6,8 +6,8 @@ import pandas as pd
 
 if __name__ == "__main__":
     df = pd.read_csv('data\\fer2013.csv')
-    df = df.head(1000)
-    use_frame = []
+    df = df.head(500)
+    use_rows = []
     label_map = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Sad', 5:'Surprise', 6:'Neutral'}
     for index, row in df.iterrows():
         im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
@@ -19,11 +19,7 @@ if __name__ == "__main__":
         cv2.imshow('vid', im)
         k = cv2.waitKey(0)
         if k == ord('1'):   
-            use_frame.append(1)
-        elif k == ord(2):  
-            use_frame.append(0)
-        else:
-            use_frame.append(None)
-            
-    df = df.assign(use_img=use_frame)
+            use_rows.append(row)
+
+    df = pd.DataFrame(use_rows)
     df.to_csv('data\\fer2013_filtered.csv')

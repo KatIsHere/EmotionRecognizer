@@ -19,8 +19,8 @@ class DataPreprocessor:
 
     # for each labeled foder loads first and two last images (the position of the face usually stays the same)
     def load_kanade(self, label_dir, img_dir, file_format='png', 
-                    netral_percentage=0.5, 
-                    label_map = {0 : 6, 1: 0, 3 : 1, 4 : 2, 5: 3, 6 : 4, 7 : 5, 2:None}):
+                    netral_percentage=0.2, 
+                    label_map = {0 : 6, 1: 0, 3 : 1, 4 : 2, 5: 3, 6 : 4, 7 : 5, 2 : None}):
         """ Loads kanade dataset
 
             in: 
