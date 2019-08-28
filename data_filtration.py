@@ -6,6 +6,7 @@ import pandas as pd
 
 if __name__ == "__main__":
     df = pd.read_csv('data\\fer2013.csv')
+    df = df.head(1000)
     use_frame = []
     label_map = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Sad', 5:'Surprise', 6:'Neutral'}
     for index, row in df.iterrows():
@@ -17,11 +18,12 @@ if __name__ == "__main__":
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
         cv2.imshow('vid', im)
         k = cv2.waitKey(0)
-        if k== ord('y'):    # Esc key to stop
+        if k == ord('1'):   
             use_frame.append(1)
-        elif k==ord('n'):  # normally -1 returned,so don't print it
+        elif k == ord(2):  
             use_frame.append(0)
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     break
+        else:
+            use_frame.append(None)
+            
     df = df.assign(use_img=use_frame)
     df.to_csv('data\\fer2013_filtered.csv')
