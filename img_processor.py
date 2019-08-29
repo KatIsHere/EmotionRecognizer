@@ -81,8 +81,8 @@ def open_test_im(csv_filename):
 
 def predict_and_vizualize(csv_filename):
     model = Emotion_Net()
-    model.load_model("models\\combined_model.json")
-    model.load_weights("models\\combined_model.h5")
+    model.load_model("models\\ins_resnet_v3_newdata_model.json")
+    model.load_weights("models\\ins_resnet_v3_newdata_model.h5")
     df = pd.read_csv(csv_filename)
     smp = df.sample(5, random_state=42)
     for index, row in smp.iterrows():
@@ -238,22 +238,23 @@ if __name__ == "__main__":
     
     #open_test_im('data\\fer2013.csv')
 
-    #predict_and_vizualize('data\\dataset.csv')
+    predict_and_vizualize('data\\dataset.csv')
+    
     (im_rows, im_cols) = (96, 96)
     channels = 3
     n_classes = 7
-    n_classes = train_keras_model('data\\legend.csv', 
-                                im_shape=(im_rows, im_cols), 
-                                channels=channels, 
-                                epocs=5, 
-                                batch_size=32,
-                                augment=False, 
-                                detect_face=False,
-                                load_weights=True, 
-                                model_id='ins_resnet_v2_newdata_', 
-                                save_model_id='ins_resnet_v3_newdata_',
-                                plot_metrix=True, 
-                                arc=3)    
+#     n_classes = train_keras_model('data\\legend.csv', 
+#                                 im_shape=(im_rows, im_cols), 
+#                                 channels=channels, 
+#                                 epocs=5, 
+#                                 batch_size=32,
+#                                 augment=False, 
+#                                 detect_face=False,
+#                                 load_weights=True, 
+#                                 model_id='ins_resnet_v2_newdata_', 
+#                                 save_model_id='ins_resnet_v3_newdata_',
+#                                 plot_metrix=True, 
+#                                 arc=3)    
 #     print("TESTING KANADE")
 #     print("Testing on jaffe")
 #     validate_on_database("data\\dataset_jaffe.csv", "models\\kanade_mobnet_model", 
