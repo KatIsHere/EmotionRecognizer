@@ -119,6 +119,42 @@ class Emotion_Net:
         self._model.add(Dropout(0.5))     # reg
         self._model.add(Dense(n_classes, activation = 'softmax'))
 
+    def __arcitecture_4(self, input_shape, n_classes):
+        self._model.add(BatchNormalization())
+
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(Dropout(0.25))     # reg        
+        
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(Dropout(0.25))     # reg
+        
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(BatchNormalization())
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(Dropout(0.25))     # reg
+
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(Conv2D(256, (3, 3), padding = "same", input_shape = input_shape, activation = 'relu'))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "same"))
+        self._model.add(Dropout(0.25))     # reg
+        
+        # tensor reforming 
+        self._model.add(Flatten())
+        self._model.add(Dense(1024, activation = "relu"))
+        self._model.add(Dropout(0.5))        
+        self._model.add(Dense(1024, activation = "relu"))
+        self._model.add(Dropout(0.5))
+
+        self._model.add(Dense(n_classes, activation = 'softmax'))
+
+
     def init_model(self, input_shape, n_classes, arc=0):
         if arc==0:
             self.__arcitecture_2(input_shape, n_classes)

@@ -12,8 +12,19 @@ import pandas as pd
 import cv2
 from prepare_dataset import DataPreprocessor
 
+label_map = {'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6}
+
 def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(200, 200), channels=1,
                 lbl_map = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Sad', 5:'Surprise', 6:'Neutral'}):
+    """
+        0 ----- 'anger', 
+        1 ----- 'disgust'
+        2 ----- 'fear'
+        3 ----- 'happiness'
+        4 ----- 'sadness'
+        5 ----- 'surprise'
+        6 ----- 'neutral'
+    """
     detections = find_faces_dnn(img)
     (h, w) = img.shape[:2]
     faces = []
@@ -23,7 +34,7 @@ def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(200, 200), 
 
         if confidence >= conf_threshold:
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            if (box <= [1.0, 1.0, 1.0, 1.0]).all():
+            if (box <= [w, h, w, h]).all() and (box >= [0., 0., 0., 0.]).all():
                 (startX, startY, endX, endY) = box.astype("int")
                 face = img[startY:endY, startX:endX]
                 face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
@@ -123,7 +134,7 @@ def train_keras_model(dataset_csv,
         gray = True if channels==1 else False
         im_rows, im_cols = im_shape
         if detect_face:
-                x_data, y_data = load_dataset_csv(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
+                x_data, y_data = load_dataset_csv(dataset_csv, label_map, new_size=(im_rows, im_cols), greyscale=gray)
         else:
                 #x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
                 x_data, y_data = load_dataset_no_face_custom(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)

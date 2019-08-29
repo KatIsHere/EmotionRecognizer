@@ -7,6 +7,8 @@ from face_detector import init_model_dnn, find_faces_dnn
 from load_pics import load_img
 import random
 import cv2
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
 
 class DataPreprocessor:
     #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
@@ -20,7 +22,7 @@ class DataPreprocessor:
     # for each labeled foder loads first and two last images (the position of the face usually stays the same)
     def load_kanade(self, label_dir, img_dir, file_format='png', 
                     netral_percentage=0.2, 
-                    label_map = {0 : 6, 1: 0, 3 : 1, 4 : 2, 5: 3, 6 : 4, 7 : 5, 2 : None}):
+                    label_map = {0 : 'neutral', 1: 'anger', 3 : 'disgust', 4 : 'fear', 5: 'happy', 6 : 'sadness', 7 : 'surprise', 2 : None}):
         """ Loads kanade dataset
 
             in: 
@@ -73,7 +75,7 @@ class DataPreprocessor:
                             bbox.append(box)
                             bbox_norm.append(box_norm)
                             data_path.append(pics_neutral_path)
-                            labels.append(0.0)
+                            labels.append(label_map[0])
 
         bbox = np.array(bbox)
         bbox_norm = np.array(bbox_norm)
@@ -85,15 +87,15 @@ class DataPreprocessor:
         }
 
     def load_facesdb(self, img_dir, file_format='tif', 
-                    label_map = {0 : 0, 1: 4, 2 : 5, 3 : 6, 4: 1, 5 : 2, 6 : 3}):
+                    label_map = {0 : 'neutral', 1: 'happy', 2 : 'sadness', 3 : 'surprise', 4: 'anger', 5 : 'disgust', 6 : 'fear'}):
         # label mapping     no contempt     with contempt   |       New data
-        # 0 - Neutral    ->     0        ->      0          |           6
-        # 1 - Happy      ->     4        ->      5          |           3
-        # 2 - Sadness    ->     5        ->      6          |           4
-        # 3 - Surprise   ->     6        ->      7          |           5
-        # 4 - Anger      ->     1        ->      1          |           0
-        # 5 - Disgust    ->     2        ->      3          |           1
-        # 6 - Fear       ->     3        ->      4          |           2
+        # 0 - neutral    ->     0        ->      0          |           6
+        # 1 - happy      ->     4        ->      5          |           3
+        # 2 - sadness    ->     5        ->      6          |           4
+        # 3 - surprise   ->     6        ->      7          |           5
+        # 4 - anger      ->     1        ->      1          |           0
+        # 5 - disgust    ->     2        ->      3          |           1
+        # 6 - fear       ->     3        ->      4          |           2
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
         labels, data_path = [], []
         bbox, bbox_norm = [], []
@@ -127,7 +129,7 @@ class DataPreprocessor:
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
     
     def load_jaffe(self, img_dir, file_format='tiff', 
-                label_map = {'NE' : 0, 'AN' : 1, 'DI' : 2, 'FE' : 3, 'HA' : 4, 'SA' : 5, 'SU' : 6 }):
+                label_map = {'NE' : 'neutral', 'AN' : 'anger', 'DI' : 'disgust', 'FE' : 'fear', 'HA' : 'happy', 'SA' : 'sadness', 'SU' : 'surprise' }):
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
         f_list = glob.glob(img_dir + "/*." + file_format)
         labels, data_path = [], []
@@ -157,6 +159,7 @@ class DataPreprocessor:
                             'x1' : bbox[:, 2], 'y1' : bbox[:, 3], 
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
+
 
     def load_custom(self, img_dir, csv_file, csv_newfile,
                     label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
@@ -338,14 +341,13 @@ def prepare_data_with_contempt():
 
 # 'contempt' is excluded from the dataset
 def prepare_data_no_contempt():
-    #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
     dt = DataPreprocessor()
-    dt.load_custom('data\\images\\', 'data\\legend.csv', 'data\\legend_with_bboxes.csv')
-    # dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
+    # dt.load_custom('data\\images\\', 'data\\legend.csv', 'data\\legend_with_bboxes.csv')
+    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
     # #dt.save_csv('data\\dataset_kanade.csv')
-    # dt.load_facesdb('data\\facesdb\\', label_map = {0 : 6, 1: 3, 2 : 4, 3 : 5, 4: 0, 5 : 1, 6 : 2})
-    # dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 6, 'AN' : 0, 'DI' : 1, 'FE' : 2, 'HA' : 3, 'SA' : 4, 'SU' : 5 })
-    # dt.save_csv('data\\dataset.csv')
+    dt.load_facesdb('data\\facesdb\\')
+    dt.load_jaffe("data\\jaffe\\")
+    dt.save_csv('data\\dataset.csv')
     # dt.clear()
     # dt.load_facesdb('data\\facesdb\\')
     # dt.save_csv('data\\dataset_facesdb.csv')
@@ -354,8 +356,49 @@ def prepare_data_no_contempt():
     # dt.save_csv('data\\dataset_jaffe.csv')
 
 
+def plot_density(csv_filename, label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
+                    'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
+    """
+        0 ----- 'anger', 
+        1 ----- 'disgust'
+        2 ----- 'fear'
+        3 ----- 'happiness'
+        4 ----- 'sadness'
+        5 ----- 'surprise'
+        6 ----- 'neutral'
+    """
+    df = pd.read_csv(csv_filename)
+    c = np.zeros(7)
+    for it, row in df.iterrows():
+        if row['emotion'] in label_map:
+            c[label_map[row['emotion']]] += 1
+    plt.plot([0, 1, 2, 3, 4, 5, 6], c, 'o')
+    #n, bins, patches = plt.hist(c, 7, facecolor='blue', alpha=0.5)
+    plt.show()
+
+
+def plot_density_2(csv_filename):
+    """
+        0 ----- 'anger', 
+        1 ----- 'disgust'
+        2 ----- 'fear'
+        3 ----- 'happiness'
+        4 ----- 'sadness'
+        5 ----- 'surprise'
+        6 ----- 'neutral'
+    """
+    df = pd.read_csv(csv_filename)
+    c = np.zeros(7)
+    for it, row in df.iterrows():
+        c[int(row['label'])] += 1
+    plt.plot([0, 1, 2, 3, 4, 5, 6], c, 'o')
+    #n, bins, patches = plt.hist(c, 7, facecolor='blue', alpha=0.5)
+    plt.show()
+
+
 if __name__ == "__main__":
     random.seed()
+    #plot_density_2('data\\dataset.csv')
     #dt = DataPreprocessor()
     #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
     #dt.load_and_pross_fer2013('data\\fer2013.csv', 'data\\fer2013_bbox.csv')

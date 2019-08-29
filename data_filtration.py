@@ -14,9 +14,11 @@ if __name__ == "__main__":
         im = np.reshape(im, (48, 48))
         im = cv2.resize(im, (48*5,48*5), cv2.INTER_AREA)
         im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
-        im = cv2.putText(im, label_map[row['emotion']], (5, 10), 
+        im = cv2.putText(im, str(index), (5, 10), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-        cv2.imshow('vid', im)
+        im = cv2.putText(im, label_map[row['emotion']], (5, 25), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        cv2.imshow('images', im)
         k = cv2.waitKey(0)
         if k == ord('1'):   
             use_rows.append(row)

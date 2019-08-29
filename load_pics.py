@@ -27,7 +27,7 @@ def load_img(im_path, greyscale=False, resize=False, new_size=None):
     return img
 
 
-def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
+def load_dataset_csv(csv_filename, label_map, greyscale=True, new_size = None):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
@@ -39,7 +39,7 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
         if new_size is not None:
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)
-        y_data.append(row['label'])
+        y_data.append(label_map[row['label']])
     return x_data, y_data
 
 
