@@ -1,14 +1,15 @@
 import numpy as np
 import cv2
-from keras_model import Emotion_Net
-from img_processor import detect_and_classify
+#from img_processor import detect_and_classify
 import pandas as pd
 
+# 9200
 def filter_fer_scv(csv_filename, csv_new_f, 
                     label_map = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 
                                 4:'Sad', 5:'Surprise', 6:'Neutral'}):
     df = pd.read_csv(csv_filename)
-    df = df.head(500)
+    #df = df.head(500)
+    df = df[2500:3000]
     use_rows = []
     for index, row in df.iterrows():
         im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
@@ -50,4 +51,4 @@ def filter_fer(csv_filename, csv_f_new, csv_old, thresh=8,
 
 if __name__ == "__main__":
     #filter_fer('data\\fer2013new.csv', 'data\\fer2013_processed.csv', 'data\\fer2013.csv')
-    filter_fer_scv('data\\fer2013_processed.csv', 'data\\fer2013_filtered.csv')
+    filter_fer_scv('data\\fer2013_processed.csv', 'data\\fer2013_filtered_3000.csv')
