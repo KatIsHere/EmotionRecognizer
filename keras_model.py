@@ -125,9 +125,9 @@ class Emotion_Net:
         elif arc==1:
             self.__transfer_vgg16(input_shape, n_classes)
         elif arc==2:
-            self.__transfer_resnet50(input_shape, n_classes, True)
+            self.__transfer_resnet50(input_shape, n_classes, False)
         elif arc==3:
-            self.__transfer_inception_resnet(input_shape, n_classes, True)
+            self.__transfer_inception_resnet(input_shape, n_classes, False)
         elif arc==4:
             self.__arcitecture_3(input_shape, n_classes)
         elif arc==5:

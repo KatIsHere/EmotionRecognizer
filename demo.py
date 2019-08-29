@@ -6,8 +6,8 @@ from img_processor import detect_and_classify
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     model = Emotion_Net()
-    model.load_model("models\\ins_resnet_v1_model.json")
-    model.load_weights("models\\ins_resnet_v1_model.h5")
+    model.load_model("models\\ins_resnet_v2_newdata_model.json")
+    model.load_weights("models\\ins_resnet_v2_newdata_model.h5")
 
     while(True):
         ret, frame = cap.read()

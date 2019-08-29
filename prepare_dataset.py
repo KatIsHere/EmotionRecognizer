@@ -158,6 +158,36 @@ class DataPreprocessor:
                             'x_norm0' : bbox_norm[:, 0], 'y_norm0' : bbox_norm[:, 1], 
                             'x_norm1' : bbox_norm[:, 2], 'y_norm1' : bbox_norm[:, 3]}
 
+    def load_custom(self, img_dir, csv_file, csv_newfile,
+                    label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
+                    'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
+        df = pd.read_csv(csv_file)
+        bbox = []
+        net = init_model_dnn()
+        labels = []
+        data_path = []
+        for index, row in df.iterrows():
+            im = load_img(img_dir + row['image'], False, None)
+            detections = find_faces_dnn(im, net=net)
+            confidence_max_pos = np.argmax(detections[0, 0, :, 2])
+
+            if detections[0, 0, confidence_max_pos, 2] > self.conf_threshold:
+                    (h, w) = im.shape[:2]
+                    box_norm =  detections[0, 0, 0, 3:7]
+                    if (box_norm <= [1.0, 1.0, 1.0, 1.0]).all() and label_map[row['emotion']] is not None:
+                        box = box_norm * np.array([w, h, w, h])
+                        bbox.append(box.astype("int"))
+                        labels.append(label_map[row['emotion']])
+                        data_path.append(img_dir + row['image'])
+
+        bbox = np.array(bbox)
+        labels = np.array(labels)
+        df = pd.DataFrame(data={'file': data_path, 'label': labels, 
+                            'x0' : bbox[:, 0], 'y0' : bbox[:, 1], 
+                            'x1' : bbox[:, 2], 'y1' : bbox[:, 3]})
+        assert isinstance(csv_newfile, str)
+        df.to_csv(csv_newfile)
+
     def load_and_pross_fer2013(self, csv_file, csv_newfile, im_size = (48, 48)):
         df = pd.read_csv(csv_file)
         bbox = []
@@ -310,11 +340,12 @@ def prepare_data_with_contempt():
 def prepare_data_no_contempt():
     #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
     dt = DataPreprocessor()
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
-    #dt.save_csv('data\\dataset_kanade.csv')
-    dt.load_facesdb('data\\facesdb\\', label_map = {0 : 6, 1: 3, 2 : 4, 3 : 5, 4: 0, 5 : 1, 6 : 2})
-    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 6, 'AN' : 0, 'DI' : 1, 'FE' : 2, 'HA' : 3, 'SA' : 4, 'SU' : 5 })
-    dt.save_csv('data\\dataset.csv')
+    dt.load_custom('data\\images\\', 'data\\legend.csv', 'data\\legend_with_bboxes.csv')
+    # dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
+    # #dt.save_csv('data\\dataset_kanade.csv')
+    # dt.load_facesdb('data\\facesdb\\', label_map = {0 : 6, 1: 3, 2 : 4, 3 : 5, 4: 0, 5 : 1, 6 : 2})
+    # dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 6, 'AN' : 0, 'DI' : 1, 'FE' : 2, 'HA' : 3, 'SA' : 4, 'SU' : 5 })
+    # dt.save_csv('data\\dataset.csv')
     # dt.clear()
     # dt.load_facesdb('data\\facesdb\\')
     # dt.save_csv('data\\dataset_facesdb.csv')

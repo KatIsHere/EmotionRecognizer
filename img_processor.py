@@ -1,7 +1,7 @@
 
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from load_pics import load_dataset_csv, load_img, load_dataset_no_face
+from load_pics import load_dataset_csv, load_img, load_dataset_no_face, load_dataset_no_face_custom
 from face_detector import faces_from_database_dnn, find_faces_dnn
 from keras.optimizers import SGD, Adam
 from keras_model import Emotion_Net
@@ -23,14 +23,15 @@ def detect_and_classify(img, model, conf_threshold = 0.97, new_size=(200, 200), 
 
         if confidence >= conf_threshold:
             box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            (startX, startY, endX, endY) = box.astype("int")
-            face = img[startY:endY, startX:endX]
-            face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-            if new_size is not None:
-                assert len(new_size) == 2
-                face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
-            faces.append(np.resize(face, (face.shape[0], face.shape[1], channels)))
-            bboxes.append([(startX, startY), (endX, endY)])
+            if (box <= [1.0, 1.0, 1.0, 1.0]).all():
+                (startX, startY, endX, endY) = box.astype("int")
+                face = img[startY:endY, startX:endX]
+                face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+                if new_size is not None:
+                        assert len(new_size) == 2
+                        face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
+                faces.append(np.resize(face, (face.shape[0], face.shape[1], channels)))
+                bboxes.append([(startX, startY), (endX, endY)])
     faces = np.array(faces, dtype='float32')
     if faces.shape[0] == 0:
             return img
@@ -124,7 +125,8 @@ def train_keras_model(dataset_csv,
         if detect_face:
                 x_data, y_data = load_dataset_csv(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
         else:
-                x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
+                #x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
+                x_data, y_data = load_dataset_no_face_custom(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray)
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
@@ -140,11 +142,11 @@ def train_keras_model(dataset_csv,
         if augment:
                 history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, 
                         save_best_to=model_folder + save_model_id + "model.h5", \
-                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0005))
+                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0001))
         else:
                 history_call = Model.train(x_train, y_train, x_test, y_test, 
                         save_best_to=model_folder + save_model_id + "model.h5", \
-                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0005))
+                        batch_size=batch_size, n_epochs=epocs, optim=Adam(lr=0.0001))
         if plot_metrix:
                 plt.subplot(2,2,1)
                 plt.title('training loss')
@@ -229,16 +231,16 @@ if __name__ == "__main__":
     (im_rows, im_cols) = (96, 96)
     channels = 3
     n_classes = 7
-    n_classes = train_keras_model('data\\dataset.csv', 
+    n_classes = train_keras_model('data\\legend.csv', 
                                 im_shape=(im_rows, im_cols), 
                                 channels=channels, 
                                 epocs=5, 
                                 batch_size=32,
                                 augment=False, 
-                                detect_face=True,
+                                detect_face=False,
                                 load_weights=True, 
-                                model_id='ins_resnet_v1_', 
-                                save_model_id='ins_resnet_v1_',
+                                model_id='ins_resnet_v2_newdata_', 
+                                save_model_id='ins_resnet_v3_newdata_',
                                 plot_metrix=True, 
                                 arc=3)    
 #     print("TESTING KANADE")
@@ -250,7 +252,7 @@ if __name__ == "__main__":
 #                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
     
     print("TESTING COMBINED")
-    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v1_model", 
+    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v2_newdata_model", 
                 n_classes, im_shape = (im_rows, im_cols), channels=channels)
 #     print("Testing on facesdb")
 #     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 
@@ -258,3 +260,4 @@ if __name__ == "__main__":
     plt.show()
 
 #     test_model('combined_arc3_')
+# TODO: check mod on test

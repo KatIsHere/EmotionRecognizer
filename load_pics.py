@@ -43,6 +43,7 @@ def load_dataset_csv(csv_filename, greyscale=True, new_size = None):
     return x_data, y_data
 
 
+
 def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
@@ -55,6 +56,21 @@ def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
             im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         x_data.append(im)
         y_data.append(int(row['emotion']))
+    return x_data, y_data
+
+
+def load_dataset_no_face_custom(csv_filename, new_size = None, greyscale=False, 
+                    label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
+                    'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
+    for index, row in df.iterrows():
+        im = load_img('data\\images\\' + row['image'], greyscale, None)
+        if new_size is not None:
+            im = cv2.resize(im, new_size, cv2.INTER_AREA)
+        if row['emotion'] in label_map:
+            x_data.append(im)
+            y_data.append(label_map[(row['emotion'])])
     return x_data, y_data
     
 
