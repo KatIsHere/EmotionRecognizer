@@ -6,11 +6,14 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D
 from keras.callbacks import ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
-from load_pics import load_facial_dataset_csv, load_img
+from load_pics import load_facial_dataset_csv, load_img, load_facial_data_kadle_cvs, load_facial_data_kadle2d
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from face_detector import faces_from_database_dnn, find_faces_dnn
+from sklearn.utils import shuffle
+from collections import OrderedDict
+from facial_special_settings import SPECIAL_SETTINGS_KADLE_DATA
 import random
 import cv2
 
@@ -27,18 +30,11 @@ class Facial_Feature_Net:
         
         self._model.add(BatchNormalization(input_shape = input_shape))
         
-        self._model.add(Conv2D(16, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(32, (3, 3), padding = "valid", 
                                            input_shape = input_shape, 
                                            activation = 'relu', 
                                            kernel_initializer='he_normal'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
-        self._model.add(Dropout(0.2))
-
-        self._model.add(Conv2D(32, (3, 3), padding = "valid", 
-                                           input_shape = input_shape, 
-                                           activation = 'relu'))
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), 
-                                           padding = "valid"))
         self._model.add(Dropout(0.2))
 
         self._model.add(Conv2D(64, (3, 3), padding = "valid", 
@@ -49,13 +45,20 @@ class Facial_Feature_Net:
         self._model.add(Dropout(0.2))
 
         self._model.add(Conv2D(128, (3, 3), padding = "valid", 
+                                           input_shape = input_shape, 
+                                           activation = 'relu'))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), 
+                                           padding = "valid"))
+        self._model.add(Dropout(0.2))
+
+        self._model.add(Conv2D(256, (3, 3), padding = "valid", 
                                             input_shape = input_shape, 
                                             activation = 'relu'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), 
                                             padding = "valid"))
         self._model.add(Dropout(0.2))
 
-        self._model.add(Conv2D(256, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(512, (3, 3), padding = "valid", 
                                             input_shape = input_shape, 
                                             activation = 'relu'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), 
@@ -67,15 +70,15 @@ class Facial_Feature_Net:
         else:
             self._model.add(Flatten())
         
-        self._model.add(Dense(1000, activation = "relu", 
+        self._model.add(Dense(512, activation = "relu", 
                                    kernel_initializer='he_normal'))
-        self._model.add(Dense(1000, activation = "relu", 
+        self._model.add(Dense(512, activation = "relu", 
                                    kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
         
-        self._model.add(Dense(1000, activation = "relu", 
+        self._model.add(Dense(1024, activation = "relu", 
                                    kernel_initializer='he_normal'))
-        self._model.add(Dense(1000, activation = "relu", 
+        self._model.add(Dense(1024, activation = "relu", 
                                    kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
 
@@ -254,67 +257,123 @@ def detect_and_find_features(img, model, conf_threshold = 0.97, new_size=(144, 1
     return faces_img
 
 
-if __name__=="__main__":
-    random.seed()
-    im_rows, im_cols, channels = 100, 100, 1
-    
+def plot_loss(hist, name, plt, rmse=False):
+    '''
+    rmse: if True, then rmse is plotted with original scale 
+    '''
+    loss = hist['loss']
+    val_loss = hist['val_loss']
+    if rmse:
+        loss = np.sqrt(np.array(loss))*48 
+        val_loss = np.sqrt(np.array(val_loss))*48 
+        
+    plt.plot(loss, "--", linewidth=3, label="train:" + name)
+    plt.plot(val_loss, linewidth=3, label="val:" + name)
+
+
+def plot_hist(history_call):
+    plt.subplot(2,2,1)
+    plt.title('training loss')
+    plt.plot(history_call.history['loss'])
+    plt.subplot(2,2,2)
+    plt.title('training accuracy')
+    plt.plot(history_call.history['acc'])
+    plt.subplot(2,2,3)
+    plt.title('testing loss')
+    plt.plot(history_call.history['val_loss'])
+    plt.subplot(2,2,4)
+    plt.title('testing accuracy')
+    plt.plot(history_call.history['val_acc'])
+    plt.show()
+
+
+def train_features(load_model=False, num_features=76, model_id=''):
+    im_rows, im_cols, channels = 96, 96, 1
+    if num_features == 76:
+        x_data, y_data = load_facial_dataset_csv('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols))
+    elif num_features == 15:
+        x_data, y_data = load_facial_data_kadle2d('data\\facial_features\\training.csv')
+    else:
+        return None
+    x_data = np.array(x_data, dtype='float32')
+    y_data = np.array(y_data, dtype='float32')
+
+    n_features = y_data.shape[1]
+    x_data = x_data/255.0   
+    x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
+
     Model = Facial_Feature_Net()
-    Model.load_model("models\\facial_model.json")
-    Model.load_weights("models\\facial_model_sm_2.h5")
+    if load_model:
+        Model.load_model("models\\facial_model.json")
+        Model.load_weights("models\\facial_model.h5")
+    else:
+        Model.init_model_2(input_shape=(im_rows, im_cols, channels), n_features=n_features)
 
-    # x_data, y_data = load_facial_dataset_csv('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols))
-    # x_data = np.array(x_data, dtype='float32')
-    # y_data = np.array(y_data, dtype='float32')
-
-    # # for i in range(x_data.shape[0]):
-    # #     img = x_data[i, :, :, :]
-    # #     for j in range(0, y_data.shape[1] - 1, 2):
-    # #         img = cv2.circle(img, (y_data[i, j], y_data[i, j + 1]), 1, (0, 0, 255), 1)
-    # #     cv2.imshow("img_name", img)
-    # #     cv2.waitKey(0) 
-    
-    # n_features = y_data.shape[1]
-    # x_data = x_data/123.0 - 1   
-    # #y_data = np_utils.to_categorical(y_data, n_features)
-    # x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
-    # x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=random.seed())
-
-
-    # Model.init_model_2(input_shape=(im_rows, im_cols, channels), n_features=n_features)
-    # history_call = Model.train(x_data, y_data, 
-    #                             batch_size=32, 
-    #                             n_epochs=50, 
-    #                             optim = 'rmsprop',
-    #                             save_best = False,
-    #                             save_best_to="models\\facial_model.h5")
-
+    history_call = Model.train(x_data, y_data, 
+                                batch_size=32, 
+                                n_epochs=100, 
+                                optim = 'rmsprop',
+                                save_best = False,
+                                save_best_to="models\\facial_model.h5")
 
     #Model.evaluate_accur(x_test, y_test)
-    #Model.save_model("models\\facial_model.json")
-    #Model.save_weights("models\\facial_model_sm_2.h5")
+    Model.save_model("models\\" + model_id + "facial_model.json")
+    Model.save_weights("models\\" + model_id + "facial_model.h5")
+    
+    plot_hist(history_call)
+    return Model
 
-    # plt.subplot(2,2,1)
-    # plt.title('training loss')
-    # plt.plot(history_call.history['loss'])
-    # plt.subplot(2,2,2)
-    # plt.title('training accuracy')
-    # plt.plot(history_call.history['acc'])
-    # plt.subplot(2,2,3)
-    # plt.title('testing loss')
-    # plt.plot(history_call.history['val_loss'])
-    # plt.subplot(2,2,4)
-    # plt.title('testing accuracy')
-    # plt.plot(history_call.history['val_acc'])
-    # plt.show()
 
-    images = ['data\\kanade\\cohn-kanade-images\\S022\\004\\S022_004_00000006.png',
-            'data\\muct\\imgs\\i000qb-fn.jpg', 'data\\muct\\imgs\\i003sc-fn.jpg',
-            'data\\muct\\imgs\\i012rb-mn.jpg', 'data\\muct\\imgs\\i031sd-fn.jpg']
-    for img_name in images:
-        img = load_img(img_name, False, None)
-        faces_found = find_features(img, Model, new_size=(im_rows, im_cols))
-        cv2.imshow(img_name, faces_found)
-        cv2.waitKey(0)
-        #for face in faces_found:
-        #    cv2.imshow(img_name, face)
-        #    cv2.waitKey(0) 
+def train_features_special(load_model=False):
+    special_ft = OrderedDict()
+    im_rows, im_cols, channels = 96, 96, 1
+
+    for setting in SPECIAL_SETTINGS_KADLE_DATA:
+        cols = setting['columns']
+        flip_indices = setting['flip_indices']
+
+        x_data, y_data = load_facial_data_kadle2d('data\\facial_features\\training.csv', cols)
+        x_data = np.array(x_data, dtype='float32')
+        n_features = y_data.shape[1]
+        x_data /= 255.   
+        Model = Facial_Feature_Net()
+        if load_model:
+            Model.load_model("models\\" + setting['save_as'] + "_facial_model.json")
+            Model.load_weights("models\\" + setting['save_as'] + "_facial_model.h5")
+        else:
+            Model.init_model_2(input_shape=(im_rows, im_cols, channels), n_features=n_features)
+
+        print("Training features: ", cols)
+        history_call = Model.train(x_data, y_data, 
+                                    batch_size=32, 
+                                    n_epochs=70, 
+                                    optim = 'adam',
+                                    save_best = False,
+                                    save_best_to="models\\facial_model.h5")
+
+        special_ft[cols] = {"model":Model,
+                             "hist":history_call}
+
+        Model.save_model("models\\special_features\\" + setting['save_as'] + "_facial_model.json")
+        Model.save_weights("models\\special_features\\" + setting['save_as'] + "_facial_model.h5")
+    
+    #plot_hist(history_call)
+    return (special_ft)
+
+
+
+if __name__=="__main__":
+    random.seed()
+    train_features_special()
+
+    # images = ['data\\kanade\\cohn-kanade-images\\S022\\004\\S022_004_00000006.png',
+    #         'data\\muct\\imgs\\i000qb-fn.jpg', 'data\\muct\\imgs\\i003sc-fn.jpg',
+    #         'data\\muct\\imgs\\i012rb-mn.jpg', 'data\\muct\\imgs\\i031sd-fn.jpg']
+    # for img_name in images:
+    #     img = load_img(img_name, False, None)
+    #     faces_found = find_features(img, Model, new_size=(im_rows, im_cols))
+    #     cv2.imshow(img_name, faces_found)
+    #     cv2.waitKey(0)
+    #     #for face in faces_found:
+    #     #    cv2.imshow(img_name, face)
+    #     #    cv2.waitKey(0) 

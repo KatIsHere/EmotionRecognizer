@@ -9,10 +9,10 @@ def filter_fer_scv(csv_filename, csv_new_f,
                                 4:'Sad', 5:'Surprise', 6:'Neutral'}):
     df = pd.read_csv(csv_filename)
     #df = df.head(500)
-    df = df[2500:3000]
+    df = df[8000:9200]
     use_rows = []
     for index, row in df.iterrows():
-        im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+        im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
         im = np.reshape(im, (48, 48))
         im = cv2.resize(im, (48*10, 48*10), cv2.INTER_AREA)
         im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
@@ -51,4 +51,4 @@ def filter_fer(csv_filename, csv_f_new, csv_old, thresh=8,
 
 if __name__ == "__main__":
     #filter_fer('data\\fer2013new.csv', 'data\\fer2013_processed.csv', 'data\\fer2013.csv')
-    filter_fer_scv('data\\fer2013_processed.csv', 'data\\fer2013_filtered_3000.csv')
+    filter_fer_scv('data\\fer2013_processed.csv', 'data\\fer2013_filtered_9000.csv')

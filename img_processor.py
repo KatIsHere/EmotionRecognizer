@@ -177,7 +177,7 @@ def train_keras_model(dataset_csv,
 
         Model.evaluate_accur(x_test, y_test)
         Model.save_model(model_folder + save_model_id + "model.json")
-        #Model.save_weights(model_folder + save_model_id + "model.h5")
+        Model.save_weights(model_folder + save_model_id + "model.h5")
         return n_classes
 
 

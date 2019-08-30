@@ -5,6 +5,8 @@ import os
 import re
 import pandas as pd
 from face_detector import cut_out_faces_dnn, init_model_dnn
+from sklearn.utils import shuffle
+
 
 def load_img(im_path, greyscale=False, resize=False, new_size=None):
     """
@@ -40,6 +42,7 @@ def load_dataset_csv(csv_filename, label_map, greyscale=True, new_size = None):
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)
         y_data.append(label_map[row['label']])
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
 
@@ -48,7 +51,8 @@ def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+        im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
+        #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
         im = np.resize(im, (48, 48))
         if new_size is not None:
             im = cv2.resize(im, new_size, cv2.INTER_AREA)
@@ -56,6 +60,7 @@ def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
             im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         x_data.append(im)
         y_data.append(int(row['emotion']))
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
 
@@ -71,6 +76,7 @@ def load_dataset_no_face_custom(csv_filename, new_size = None, greyscale=False,
         if row['emotion'] in label_map:
             x_data.append(im)
             y_data.append(label_map[(row['emotion'])])
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
     
 
@@ -88,16 +94,36 @@ def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)
         coords = row.iloc[3:-4].values
-        w_org = 1 / (row['bbox_x1'] -  row['bbox_x0'])
-        h_org = 1 / (row['bbox_y1'] -  row['bbox_y0'])
+        w_org = 2 / (row['bbox_x1'] -  row['bbox_x0'])
+        h_org = 2 / (row['bbox_y1'] -  row['bbox_y0'])
         for i in range(0, len(coords) - 1, 2):
-            coords[i] = (coords[i] - row['bbox_x0']) * w_org
-            coords[i + 1] = (coords[i + 1] - row['bbox_y0']) * h_org
+            coords[i] = (coords[i] - row['bbox_x0']) * w_org - 1
+            coords[i + 1] = (coords[i + 1] - row['bbox_y0']) * h_org - 1
         y_data.append(coords)
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
 
-# TODO: rename labels and cut out face before passing down
+def load_facial_data_kadle_cvs(csv_filename, cols=None):
+    df = pd.read_csv(csv_filename)
+    df['Image'] = df['Image'].apply(lambda im: np.fromstring(im, sep=' '))
+    df = df.dropna() 
+    if cols:
+        df = df[list(cols) + ['Image']]
+    df = df.dropna()  
+    x_data = np.vstack(df['Image'].values)
+    y_data = df[df.columns[:-1]].values
+    y_data = (y_data - 48) / 48     # normalizing labels
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
+    return x_data, y_data
+
+
+def load_facial_data_kadle2d(csv_filename, cols=None):
+    x_data, y_data = load_facial_data_kadle_cvs(csv_filename, cols)
+    x_data = x_data.reshape(-1, 96, 96, 1)
+    return x_data, y_data
+
+
 def load_jaffe(folder_dir, f_format, greyscale=False,
                 lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):
     """ Loads jaffe dataset
@@ -119,6 +145,7 @@ def load_jaffe(folder_dir, f_format, greyscale=False,
     strt_ind = f_list[0].find('jaffe') + 9
     labels = np.array([lbl_dict[fname[strt_ind : strt_ind + 2]] for fname in f_list])
     return data, labels
+
 
 # TODO: give all images to cv.bolb?
 def load_kanade(img_folder_dir, label_folder_dir, new_im_size = None, file_format='png', load_grey=True):
@@ -161,8 +188,3 @@ def load_kanade(img_folder_dir, label_folder_dir, new_im_size = None, file_forma
                         labeles.append(float(lbl.read()[:-1]) - 1.0)
     return pics, np.array(labeles).astype('int32')
     
-    
-# TODO: rewrite using tiff package
-def load_jaffe_tiff(folder_dir, 
-                lbl_dict = {'HA' : 0, 'SA' : 1, 'SU' : 2, 'AN' : 3, 'DI' : 4, 'FE' : 5, 'NE' : 6}):
-    pass

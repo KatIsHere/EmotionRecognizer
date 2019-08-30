@@ -143,7 +143,13 @@ test_img.png
 test_img2.jpg
 test_img3.jpg
 test_img4.jpg
+shape_predictor_68_face_landmarks.dat
 fer2013.csv
 models
 images
 test
+facial_features
+fer2013_filtered.csv
+fer2013_processed.csv
+fer2013new.csv
+data\legend.csv
