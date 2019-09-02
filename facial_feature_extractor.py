@@ -6,7 +6,7 @@ from keras.activations import relu
 from keras.models import Sequential, model_from_json, Model 
 from keras.layers import *
 from keras.callbacks import ModelCheckpoint
-from load_pics import load_facial_dataset_csv, load_img, load_facial_data_kadle_cvs, load_facial_data_kadle2d, load_facial_dataset_for_autoencoder
+from load_pics import load_img, load_facial_data_kadle_cvs, load_facial_data_kadle2d, load_facial_dataset_for_autoencoder
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -17,6 +17,7 @@ from collections import OrderedDict
 from facial_special_settings import SPECIAL_SETTINGS_KADLE_DATA
 import random
 import cv2
+import pandas as pd
 
 class Facial_Feature_Net:
 
@@ -114,61 +115,54 @@ class Facial_Feature_Net:
         self._model.add(Dense(n_features))
 
     def init_model_3(self, input_shape, n_features):
-        self._model.add(Conv2D(32, (3, 3), padding = "valid", 
-                                           input_shape = input_shape, 
-                                           activation = 'relu', 
-                                           kernel_initializer='he_normal'))
-        self._model.add(Conv2D(32, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(32, (3, 3), padding = "same", 
                                            input_shape = input_shape, 
                                            activation = 'relu', 
                                            kernel_initializer='he_normal'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
-        self._model.add(BatchNormalization())
 
-        self._model.add(Conv2D(64, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(64, (3, 3), padding = "same", 
                                            input_shape = input_shape, 
-                                           activation = 'relu', 
-                                           kernel_initializer='he_normal'))
+                                           activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", 
+                                           input_shape = input_shape, 
+                                           activation = 'relu'))
+        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
+
+        self._model.add(Conv2D(64, (3, 3), padding = "same", 
+                                           input_shape = input_shape, 
+                                           activation = 'relu'))
+        self._model.add(Conv2D(64, (3, 3), padding = "same", 
+                                           input_shape = input_shape, 
+                                           activation = 'relu'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         self._model.add(BatchNormalization())
         self._model.add(Dropout(0.2))
 
-        self._model.add(Conv2D(128, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(128, (3, 3), padding = "same", 
                                            input_shape = input_shape, 
-                                           activation = 'relu', 
-                                           kernel_initializer='he_normal'))
+                                           activation = 'relu'))
+        self._model.add(Conv2D(128, (3, 3), padding = "same", 
+                                           input_shape = input_shape, 
+                                           activation = 'relu'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
-        self._model.add(BatchNormalization())
 
-        self._model.add(Conv2D(256, (3, 3), padding = "valid", 
+        self._model.add(Conv2D(256, (3, 3), padding = "same", 
                                            input_shape = input_shape, 
-                                           activation = 'relu', 
-                                           kernel_initializer='he_normal'))
-        self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
-        self._model.add(BatchNormalization())
-
-        self._model.add(Conv2D(512, (3, 3), padding = "valid", 
-                                           input_shape = input_shape, 
-                                           activation = 'relu', 
-                                           kernel_initializer='he_normal'))
+                                           activation = 'relu'))
         self._model.add(MaxPooling2D(pool_size = (2, 2), strides = (2, 2), padding = "valid"))
         self._model.add(BatchNormalization())
         self._model.add(Dropout(0.2))            
         
         self._model.add(Flatten())
         
-        self._model.add(Dense(512, activation = "relu", 
-                                   kernel_initializer='he_normal'))
-        self._model.add(Dense(512, activation = "relu", 
-                                   kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
-        
         self._model.add(Dense(1024, activation = "relu", 
                                    kernel_initializer='he_normal'))
+        self._model.add(Dropout(0.5))     # reg        
         self._model.add(Dense(1024, activation = "relu", 
                                    kernel_initializer='he_normal'))
         self._model.add(Dropout(0.5))     # reg
-
         self._model.add(Dense(n_features))
 
     def init_resnet50(self, input_shape, n_features):
@@ -192,7 +186,7 @@ class Facial_Feature_Net:
         # optimizing
         self._loss_func = loss_func
         self._optim  = optim
-        self._model.compile(loss = loss_func, optimizer = optim, metrics = [MAE])
+        self._model.compile(loss = loss_func, optimizer = optim, metrics = ['mae'])
         self.__compiled = True
 
         # learning
@@ -294,7 +288,7 @@ class Autoencoder_Facial_Net:
         u4 = UpSampling2D()(u3)
         u4 = conv_block(u4, base_filters_num, k_size=3, strides=1, use_b_norm=use_batch_norm)
         
-        output = Conv2D(1, (1, 1), strides=(1, 1), activation=None, name='logits')(u4)
+        output = Conv2D(1, (1, 1), strides=(1, 1), activation='sigmoid', name='logits')(u4)
         #print(inputs.shape)
         #print(output.shape)
         self._model = Model(input=inputs, output=output)
@@ -302,13 +296,13 @@ class Autoencoder_Facial_Net:
     def __compile(self, optim):
         def loss_weighted(y_true, y_predicted):
             return tf.reduce_mean(
-                                tf.nn.cross_entropy_with_logits(targets=y_true,
-                                                            logits=y_predicted)
-                                #  tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
-                                #                                         logits=y_predicted,
-                                #                                         pos_weight=0.1)
+                                #tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true,
+                                #                                        logits=y_predicted)
+                                tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
+                                                                         logits=y_predicted,
+                                                                         pos_weight=0.1)
                                 )
-        self._model.compile(optimizer=optim, loss=loss_weighted)
+        self._model.compile(optimizer=optim, loss='mse')
         self.__compiled = True
 
     def train(self, x_data, y_data, optim='adam', batch_size=32, n_epochs=50):
@@ -337,11 +331,24 @@ class Autoencoder_Facial_Net:
         self.__compile('adam')
 
 
+    def predict(self, x):
+        if self.__compiled:
+            return self._model.predict(x)
+        else:
+            return None
+
 
 def warp(x, y, matr):
         x_ = x*matr[0][0] + y*matr[0][1] + matr[0][2]
         y_ = x*matr[1][0] + y*matr[1][1] + matr[1][2]
         return x_, y_
+
+def warp_point(p, matr):
+    x, y = p
+    x_ = x*matr[0][0] + y*matr[0][1] + matr[0][2]
+    y_ = x*matr[1][0] + y*matr[1][1] + matr[1][2]
+    return np.array([x_, y_])
+
 
 def apply_transform(x_set, y_set, matr, feature_size):
         for i in range(x_set.shape[0]):
@@ -349,6 +356,7 @@ def apply_transform(x_set, y_set, matr, feature_size):
                 for j in range(feature_size):
                     y_set[i][j] = warp(y_set[i][j][0], y_set[i][j][1], matr)
         return x_set, y_set
+
 
 def augment_dataset(x_data, y_data, feature_size=76):
     x_flip, x_rot, y_flip, y_rot = train_test_split(np.array(x_data), 
@@ -364,7 +372,64 @@ def augment_dataset(x_data, y_data, feature_size=76):
     x_rot_left, y_rot_left = apply_transform(x_rot_left, y_rot_left, matr_rot_left, feature_size)
     res_x = np.concatenate((x_rot_right, x_rot_left, x_flip))
     res_y = np.concatenate((y_rot_right, y_rot_left, y_flip))
+    return res_x, res_y
+
+def get_face(img, greyscale, new_size, row):
+    if greyscale:
+            im = img[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1']]
+    else:
+            im = img[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1'], :]
+    if new_size is not None:
+            im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
+    return im
+
+
+def load_facial_dataset(img_dir, csv_filename, greyscale=True, new_size=None, augment=False):
+    # bbox_x0,bbox_y0,bbox_x1,bbox_y1
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
     
+    for index, row in df.iterrows():
+        img = load_img(img_dir + row['name'] + '.jpg', greyscale, None)
+        im = get_face(img, greyscale, new_size, row)
+        coords = np.array(row.iloc[3:-4].values).reshape(76, 2)
+        w, h = row['bbox_x1'] -  row['bbox_x0'], row['bbox_y1'] -  row['bbox_y0']
+        w_org = 2 / w
+        h_org = 2 / h
+        center = (w / 2, h / 2) 
+        coords = (coords - [row['bbox_x0'], row['bbox_y0']]) 
+        if augment:
+            matr_flip = np.array([[-1, 0, w], 
+                                [0, 1, 0]], 
+                                dtype='float32')
+            matr_rot_right = cv2.getRotationMatrix2D(center, 30, 1.0) 
+            matr_rot_left = cv2.getRotationMatrix2D(center, -30, 1.0) 
+
+            fliped_im = cv2.flip(im, 0 )
+            coords_fliped = np.array([warp_point(point, matr_flip) for point in coords])            
+            
+            rot_right_im = cv2.warpAffine(im, matr_rot_right, (im.shape[0], im.shape[1]))
+            coords_rot_right = np.array([warp_point(point, matr_rot_right) for point in coords])            
+            
+            rot_left_im = cv2.warpAffine(im, matr_rot_left, (im.shape[0], im.shape[1]))
+            coords_rot_left = np.array([warp_point(point, matr_rot_left) for point in coords])
+
+            coords_fliped = coords_fliped * [w_org, h_org] - 1
+            coords_rot_right = coords_rot_right * [w_org, h_org] - 1
+            coords_rot_left = coords_rot_left * [w_org, h_org] - 1
+
+            x_data.append(fliped_im)
+            y_data.append(coords_fliped)        
+            x_data.append(rot_right_im)
+            y_data.append(coords_rot_right)        
+            x_data.append(rot_left_im)
+            y_data.append(coords_rot_left)
+        coords = coords * [w_org, h_org] - 1
+        x_data.append(im)
+        y_data.append(coords)
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
+    return x_data, y_data
+
 
 def flip_dataset(x_data, y_data, feature_size=76, pers=0.5):
     x_flip, x_rot, y_flip, y_rot = train_test_split(np.array(x_data), 
@@ -409,6 +474,33 @@ def find_features(img, model, new_size, conf_threshold = 0.97):
                                      2, (0, 0, 255), 1)
 
     return img
+
+
+def predict_mask(img, model, new_size, conf_threshold = 0.97):
+    detections = find_faces_dnn(img)
+    (h, w) = img.shape[:2]
+    faces = []
+    bboxes = []
+
+    for i in range(0, detections.shape[2]):
+        confidence = detections[0, 0, i, 2]
+
+        if confidence >= conf_threshold:
+            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+            (startX, startY, endX, endY) = box.astype("int")
+            face = img[startY:endY, startX:endX]
+            face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+            if new_size is not None:
+                assert len(new_size) == 2
+                face = cv2.resize(face, new_size, interpolation = cv2.INTER_AREA)
+            faces.append(np.resize(face, (face.shape[0], face.shape[1], 1)))
+            bboxes.append([(startX, startY), (endX, endY)])
+
+    faces = np.array(faces, dtype='float32')
+    faces = faces / 255.0
+    face_features = model.predict(faces)
+
+    return face_features
 
 
 def detect_and_find_features(img, model, conf_threshold = 0.97, new_size=(144, 144)):
@@ -469,43 +561,39 @@ def plot_loss(hist, name, plt, rmse=False):
 
 
 def plot_hist(history_call):
-    plt.subplot(2,2,1)
+    plt.subplot(2,1,1)
     plt.title('training loss')
     plt.plot(history_call.history['loss'])
-    plt.subplot(2,2,2)
-    plt.title('training accuracy')
-    #plt.plot(history_call.history['acc'])
-    plt.subplot(2,2,3)
+    plt.subplot(2,1,2)
     plt.title('testing loss')
-    #plt.plot(history_call.history['val_loss'])
-    plt.subplot(2,2,4)
-    plt.title('testing accuracy')
-    #plt.plot(history_call.history['val_acc'])
+    plt.plot(history_call.history['val_loss'])
     plt.show()
 
 
 def train_features(load_model=False, num_features=76, model_id=''):
     im_rows, im_cols, channels = 96, 96, 1
     if num_features == 76:
-        x_data, y_data = load_facial_dataset_csv('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols))
+        x_data, y_data = load_facial_dataset('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols), augment=True)
     elif num_features == 15:
         x_data, y_data = load_facial_data_kadle2d('data\\facial_features\\training.csv')
     else:
         return None
     x_data = np.array(x_data, dtype='float32')
     y_data = np.array(y_data, dtype='float32')
-    x_augmented, y_augmented = flip_dataset(x_data, y_data, num_features)
-    x_data = np.concatenate((x_data, x_augmented))
-    y_data = np.concatenate((y_data, y_augmented))
-    x_data = x_data.reshape(x_data.shape[0], im_rows, im_cols, channels)
+    #x_augmented, y_augmented = flip_dataset(x_data, y_data, num_features)
+    #x_data = np.concatenate((x_data, x_augmented))
+    #y_data = np.concatenate((y_data, y_augmented))
+    x_data = np.reshape(x_data, (-1, im_rows, im_cols, channels))
+    y_data = np.reshape(y_data,(-1, num_features*2))
     n_features = y_data.shape[1]
     x_data = x_data/255.0   
     Model = Facial_Feature_Net()
+
     if load_model:
         Model.load_model("models\\" + model_id + "facial_model.json")
         Model.load_weights("models\\" + model_id + "facial_model.h5")
     else:
-        Model.init_model_2(input_shape=(im_rows, im_cols, channels), n_features=n_features)
+        Model.init_model_3(input_shape=(im_rows, im_cols, channels), n_features=n_features)
 
     history_call = Model.train(x_data, y_data, 
                                 batch_size=64, 
@@ -518,7 +606,7 @@ def train_features(load_model=False, num_features=76, model_id=''):
     Model.save_model("models\\" + model_id + "facial_model.json")
     Model.save_weights("models\\" + model_id + "facial_model.h5")
     
-    #plot_hist(history_call)
+    plot_hist(history_call)
     return Model
 
 
@@ -590,17 +678,19 @@ def train_features_auto(load_model=False, num_features=76, model_id=''):
 
 if __name__=="__main__":
     random.seed()
-    train_features_auto(load_model=False, model_id='76_resnet_')
+    train_features(load_model=False, model_id='76_')
     #train_features_special()
 
-    # images = ['data\\kanade\\cohn-kanade-images\\S022\\004\\S022_004_00000006.png',
-    #         'data\\muct\\imgs\\i000qb-fn.jpg', 'data\\muct\\imgs\\i003sc-fn.jpg',
-    #         'data\\muct\\imgs\\i012rb-mn.jpg', 'data\\muct\\imgs\\i031sd-fn.jpg']
+    images = ['data\\kanade\\cohn-kanade-images\\S022\\004\\S022_004_00000006.png',
+            'data\\muct\\imgs\\i000qb-fn.jpg', 'data\\muct\\imgs\\i003sc-fn.jpg',
+            'data\\muct\\imgs\\i012rb-mn.jpg', 'data\\muct\\imgs\\i031sd-fn.jpg']
+    # im_rows, im_cols, channels = 96, 96, 1
     # for img_name in images:
     #     img = load_img(img_name, False, None)
-    #     faces_found = find_features(img, Model, new_size=(im_rows, im_cols))
-    #     cv2.imshow(img_name, faces_found)
-    #     cv2.waitKey(0)
-    #     #for face in faces_found:
-    #     #    cv2.imshow(img_name, face)
-    #     #    cv2.waitKey(0) 
+    #     faces_found = predict_mask(img, Model, new_size=(im_rows, im_cols))
+    #     for face in faces_found:
+    #         cv2.imshow(img_name, face)
+    #         cv2.waitKey(0)
+        #for face in faces_found:
+        #    cv2.imshow(img_name, face)
+        #    cv2.waitKey(0) 
