@@ -9,11 +9,11 @@ import dlib
 from classificator_with_features import convert_landmarks, rect_to_bb
 
 def detect_features():
-    im_rows, im_cols, channels = 100, 100, 1
+    im_rows, im_cols, channels = 96, 96, 1
     
     Model = Facial_Feature_Net()
-    Model.load_model("models\\facial_model.json")
-    Model.load_weights("models\\facial_model_sm_2.h5")
+    Model.load_model("models\\76_facial_model.json")
+    Model.load_weights("models\\76_facial_model.h5")
 
     cap = cv2.VideoCapture(0)
     
@@ -23,15 +23,13 @@ def detect_features():
         frames = detect_and_find_features(frame, Model, new_size=(im_rows, im_cols))
         if frames is None:
             cv2.imshow('face : 0', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
         else:
             i = 0
             for frame in frames: 
                 cv2.imshow('face : ' + str(i), frame)
                 i += 1
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     # When everything done, release the capture
     cap.release()

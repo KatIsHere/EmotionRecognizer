@@ -104,6 +104,33 @@ def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None
     return x_data, y_data
 
 
+def load_facial_dataset_for_autoencoder(img_dir, csv_filename, greyscale=True, new_size=None):
+    # bbox_x0,bbox_y0,bbox_x1,bbox_y1
+    df = pd.read_csv(csv_filename)
+    x_data, y_data = [], []
+    for index, row in df.iterrows():
+        im = load_img(img_dir + row['name'] + '.jpg', greyscale, None)
+        if greyscale:
+            im = im[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1']]
+        else:
+            im = im[row['bbox_y0']:row['bbox_y1'], row['bbox_x0']:row['bbox_x1'], :]
+        if new_size is not None:
+            im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
+        x_data.append(im)
+        coords = row.iloc[3:-4].values
+        w_org = new_size[1] / (row['bbox_x1'] -  row['bbox_x0'])
+        h_org = new_size[0] / (row['bbox_y1'] -  row['bbox_y0'])
+        coords = np.reshape(np.array(coords), (76, 2))
+        coords = (coords - [row['bbox_x0'], row['bbox_y0']]) * [w_org, h_org]
+        coords = coords.astype('int')
+        coords = np.clip(coords, 0, [new_size[1] - 1, new_size[0] - 1])
+        mask = np.zeros((new_size), dtype='float32')
+        mask[[point for point in coords]] = 1
+        y_data.append(mask)
+    x_data, y_data = shuffle(x_data, y_data, random_state=42)
+    return x_data, y_data
+
+
 def load_facial_data_kadle_cvs(csv_filename, cols=None):
     df = pd.read_csv(csv_filename)
     df['Image'] = df['Image'].apply(lambda im: np.fromstring(im, sep=' '))
