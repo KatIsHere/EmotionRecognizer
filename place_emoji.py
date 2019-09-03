@@ -15,7 +15,7 @@ def add_emoji_to_image(img, emoji, bounding_box):
     
     y0, y1 = bounding_box[0, 1], bounding_box[1, 1]
     size = y1 - y0
-    x0, x1 = center[0] - size // 2, center[0] + size // 2
+    x0, x1 = max(center[0] - size // 2, 0), center[0] + size // 2
   
     emoji = cv2.resize(emoji, (size, size))
 
@@ -27,3 +27,15 @@ def add_emoji_to_image(img, emoji, bounding_box):
         result[y0:y1, x0:x1, c] = alpha_emoji * emoji[:, :, c] + alpha_img * img[y0:y1, x0:x1, c]
 
     return result
+
+def add_all_emojis(img, list_emojis, list_bounding_boxes):
+  label_map = {}
+  n = len(list_emojis)
+  
+  for i in range(n):
+    emoji = label_map(list_emojis[i])
+    bounding_box = list_bounding_boxes[i]
+    if(emoji != 'neutral'):
+      img = add_emoji_to_image(img, emoji, bounding_box)
+      
+  return img
