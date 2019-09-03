@@ -13,11 +13,10 @@ def add_emoji_to_image(img, emoji, bounding_box):
     
     center = (bounding_box[0] + bounding_box[1]) // 2
     
-    x0, y0 = bounding_box[0, 0], bounding_box[0, 1]
-    x1, y1 = bounding_box[1, 0], bounding_box[1, 1]
-    
+    y0, y1 = bounding_box[0, 1], bounding_box[1, 1]
     size = y1 - y0
-    
+    x0, x1 = center[0] - size // 2, center[0] + size // 2
+  
     emoji = cv2.resize(emoji, (size, size))
 
     alpha_emoji = emoji[:, :, 3] / 255.0
@@ -25,6 +24,6 @@ def add_emoji_to_image(img, emoji, bounding_box):
     alpha_img = 1.0 - alpha_emoji
 
     for c in range(0, 3):
-        result[y0:y1, y0:y1, c] = alpha_emoji * emoji[:, :, c] + alpha_img * img[y0:y1, y0:y1, c]
+        result[y0:y1, x0:x1, c] = alpha_emoji * emoji[:, :, c] + alpha_img * img[y0:y1, x0:x1, c]
 
     return result
