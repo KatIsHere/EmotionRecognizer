@@ -7,6 +7,7 @@ import random
 from keras.models import Sequential, model_from_json, Model 
 import dlib
 from classificator_with_features import convert_landmarks, rect_to_bb
+from place_emoji import add_emoji_to_image
 
 def detect_features():
     im_rows, im_cols, channels = 96, 96, 1
@@ -34,6 +35,7 @@ def detect_features():
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
+
 
 def classify_faces():
     cap = cv2.VideoCapture(0)
@@ -98,7 +100,7 @@ def run_facial_classifier():
     model.load_weights('models\\dlib_facial.h5')
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor('face_detection\\shape_predictor_68_face_landmarks.dat')
-    label_map = {0:'neutral', 1:'anger', 2:'disgust', 3:'fear', 4:'happy', 5:'sadness', 6:'surprise'}
+    label_map = {0:'neutral', 1:'angry', 2:'disgust', 3:'fear', 4:'happy', 5:'sad', 6:'surprised'}
 
     cap = cv2.VideoCapture(0)
     vid_cod = cv2.VideoWriter_fourcc(*'XVID')
@@ -108,18 +110,24 @@ def run_facial_classifier():
         ret, frame = cap.read()
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rects = detector(img, 1)
-        #landmarks = []
+        landmarks = []
+        bboxes = []
         for k, rect in enumerate(rects):
             shape = predictor(img, rect)
-            #landmarks.append(convert_landmarks(rect, shape))
             landmark = convert_landmarks(rect, shape)
             landmark = np.array(landmark).reshape((-1, 68, 2))
-            pred = model.predict(landmark)
-            pred_class = np.argmax(pred)
-            frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
-            frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
-                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
-        #preds = model.predict(np.array(landmarks))
+            landmarks.append(landmark)
+            bboxes.append([(rect.left(), rect.top()), (rect.right(), rect.bottom())])
+            #landmarks.append(convert_landmarks(rect, shape))
+            # landmark = convert_landmarks(rect, shape)
+            # landmark = np.array(landmark).reshape((-1, 68, 2))
+            # pred = model.predict(landmark)
+            # pred_class = np.argmax(pred)
+            # frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
+            # frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
+            #     cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
+        preds = model.predict(np.array(landmarks))
+        frame = add_emoji_to_image(frame, preds, bboxes)
         cv2.imshow('vid', frame)
         output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
