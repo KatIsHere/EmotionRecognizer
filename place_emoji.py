@@ -29,11 +29,11 @@ def add_emoji_to_image(img, emoji, bounding_box):
     return result
 
 def add_all_emojis(img, list_emojis, list_bounding_boxes):
-  label_map = {}
+  labels_map = {0 : 'neutral', 1:'happy', 2:'surprised', 3:'sad', 4:'angry', 5:'disgust', 6:'fear'})
   n = len(list_emojis)
   
   for i in range(n):
-    emoji = label_map(list_emojis[i])
+    emoji = labels_map(list_emojis[i])
     bounding_box = list_bounding_boxes[i]
     if(emoji != 'neutral'):
       img = add_emoji_to_image(img, emoji, bounding_box)
