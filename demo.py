@@ -9,11 +9,11 @@ import dlib
 from classificator_with_features import convert_landmarks, rect_to_bb
 
 def detect_features():
-    im_rows, im_cols, channels = 100, 100, 1
+    im_rows, im_cols, channels = 96, 96, 1
     
     Model = Facial_Feature_Net()
-    Model.load_model("models\\facial_model.json")
-    Model.load_weights("models\\facial_model_sm_2.h5")
+    Model.load_model("models\\76_facial_model.json")
+    Model.load_weights("models\\76_facial_model.h5")
 
     cap = cv2.VideoCapture(0)
     
@@ -23,15 +23,13 @@ def detect_features():
         frames = detect_and_find_features(frame, Model, new_size=(im_rows, im_cols))
         if frames is None:
             cv2.imshow('face : 0', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
         else:
             i = 0
             for frame in frames: 
                 cv2.imshow('face : ' + str(i), frame)
                 i += 1
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     # When everything done, release the capture
     cap.release()
@@ -40,12 +38,13 @@ def detect_features():
 def classify_faces():
     cap = cv2.VideoCapture(0)
     model = Emotion_Net()
-    model.load_model("models\\ins_resnet_v2_newdata_model.json")
-    model.load_weights("models\\ins_resnet_v2_newdata_model.h5")
+    model.load_model("models\\ins_resnet_v3model.json")
+    model.load_weights("models\\ins_resnet_v3model.h5")
     while True:
         ret, frame = cap.read()
 
-        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3)
+        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3, 
+                                    lbl_map={2:'anger', 3:'surprise', 0:'neutral', 1:'happiness', 4:'sadness'})
 
         cv2.imshow('vid', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -118,8 +117,8 @@ def run_facial_classifier():
             pred = model.predict(landmark)
             pred_class = np.argmax(pred)
             frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
-            frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 10), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
         #preds = model.predict(np.array(landmarks))
         cv2.imshow('vid', frame)
         output.write(frame)
@@ -137,3 +136,4 @@ if __name__ == "__main__":
     run_facial_classifier()
     #features_dlib()
     #detect_features()
+    #classify_faces()

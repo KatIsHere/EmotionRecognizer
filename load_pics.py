@@ -40,47 +40,56 @@ def load_dataset_csv(csv_filename, label_map, greyscale=True, new_size = None):
             im = im[row['y0']:row['y1'], row['x0']:row['x1'], :]
         if new_size is not None:
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
-        x_data.append(im)
-        y_data.append(label_map[row['label']])
+        if row['label'] in label_map:
+            x_data.append(im)
+            y_data.append(label_map[row['label']])
     x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
 
 
-def load_dataset_no_face(csv_filename, new_size = None, greyscale=False):
+def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=False):
+    augmented_em = ['anger', 'sadness']
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
-        #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
-        im = np.resize(im, (48, 48))
-        if new_size is not None:
-            im = cv2.resize(im, new_size, cv2.INTER_AREA)
-        if not greyscale:
-            im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
-        x_data.append(im)
-        y_data.append(int(row['emotion']))
+        if row['emotion'] in label_map:
+            im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
+            #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+            im = np.resize(im, (48, 48))
+            if new_size is not None:
+                im = cv2.resize(im, new_size, cv2.INTER_AREA)
+            if not greyscale:
+                im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+            x_data.append(im)
+            y_data.append(label_map[row['emotion']])
+            if row['emotion'] in augmented_em:  # augment data that is not represented enough
+                x_data.append(cv2.flip(im, 0))
+                y_data.append(label_map[row['emotion']])
     x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
 
 def load_dataset_no_face_custom(csv_filename, new_size = None, greyscale=False, 
-                    label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
+                    label_map = {'anger':0, 'surprise':5,  'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
                     'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = load_img('data\\images\\' + row['image'], greyscale, None)
-        if new_size is not None:
-            im = cv2.resize(im, new_size, cv2.INTER_AREA)
         if row['emotion'] in label_map:
+            path = 'data\\images\\' + row['image']
+            im = load_img(path, greyscale, None)
+            if im is None:
+                continue
+            if new_size is not None:
+                im = cv2.resize(im, new_size, cv2.INTER_AREA)
             x_data.append(im)
             y_data.append(label_map[(row['emotion'])])
     x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
     
 
-def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None):
+def load_facial_dataset_for_autoencoder(img_dir, csv_filename, greyscale=True, new_size=None):
     # bbox_x0,bbox_y0,bbox_x1,bbox_y1
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
@@ -94,12 +103,15 @@ def load_facial_dataset_csv(img_dir, csv_filename, greyscale=True, new_size=None
             im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
         x_data.append(im)
         coords = row.iloc[3:-4].values
-        w_org = 2 / (row['bbox_x1'] -  row['bbox_x0'])
-        h_org = 2 / (row['bbox_y1'] -  row['bbox_y0'])
-        for i in range(0, len(coords) - 1, 2):
-            coords[i] = (coords[i] - row['bbox_x0']) * w_org - 1
-            coords[i + 1] = (coords[i + 1] - row['bbox_y0']) * h_org - 1
-        y_data.append(coords)
+        w_org = new_size[1] / (row['bbox_x1'] -  row['bbox_x0'])
+        h_org = new_size[0] / (row['bbox_y1'] -  row['bbox_y0'])
+        coords = np.reshape(np.array(coords), (76, 2))
+        coords = (coords - [row['bbox_x0'], row['bbox_y0']]) * [w_org, h_org]
+        coords = coords.astype('int')
+        coords = np.clip(coords, 0, [new_size[1] - 1, new_size[0] - 1])
+        mask = np.zeros((new_size), dtype='float32')
+        mask[[point for point in coords]] = 1
+        y_data.append(mask)
     x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 
