@@ -49,18 +49,18 @@ def load_dataset_csv(csv_filename, label_map, greyscale=True, new_size = None):
 
 
 def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=False):
-    augmented_em = ['anger', 'sadness', 'surprise']
+    augmented_em = ['anger', 'sadness']
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
-        #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
-        im = np.resize(im, (48, 48))
-        if new_size is not None:
-            im = cv2.resize(im, new_size, cv2.INTER_AREA)
-        if not greyscale:
-            im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
         if row['emotion'] in label_map:
+            im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
+            #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
+            im = np.resize(im, (48, 48))
+            if new_size is not None:
+                im = cv2.resize(im, new_size, cv2.INTER_AREA)
+            if not greyscale:
+                im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
             x_data.append(im)
             y_data.append(label_map[row['emotion']])
             if row['emotion'] in augmented_em:  # augment data that is not represented enough
@@ -71,15 +71,18 @@ def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=Fal
 
 
 def load_dataset_no_face_custom(csv_filename, new_size = None, greyscale=False, 
-                    label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
+                    label_map = {'anger':0, 'surprise':5,  'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
                     'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        im = load_img('data\\images\\' + row['image'], greyscale, None)
-        if new_size is not None:
-            im = cv2.resize(im, new_size, cv2.INTER_AREA)
         if row['emotion'] in label_map:
+            path = 'data\\images\\' + row['image']
+            im = load_img(path, greyscale, None)
+            if im is None:
+                continue
+            if new_size is not None:
+                im = cv2.resize(im, new_size, cv2.INTER_AREA)
             x_data.append(im)
             y_data.append(label_map[(row['emotion'])])
     x_data, y_data = shuffle(x_data, y_data, random_state=42)

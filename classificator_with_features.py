@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 from keras.optimizers import SGD, Adam, RMSprop
 from keras.models import Sequential, model_from_json, Model 
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPool2D, MaxPooling2D
+from keras.layers import Dense, Dropout, Activation, Flatten, Input
+from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, BatchNormalization, Concatenate
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
@@ -17,13 +17,107 @@ from load_pics import load_img
 import pandas as pd
 from facial_feature_extractor import Facial_Feature_Net
 
+class Combined_Facial_Net:
+    def __init__(self, json_filename=None, h5_filename=None):
+        self.__model = None
+        if json_filename is not None:
+            self.load_model(json_filename)
+        if h5_filename is not None:
+            self.load_weights(h5_filename)
+
+    def __init_model__(self, input_img_shape, 
+                             input_features_shape, 
+                             num_classes,
+                             use_batch_norm=True,
+                             num_filters_last=32):
+        #! first part
+        inputs_img = Input(shape=input_img_shape, name='img_inputs')
+        #* layer 1
+        conv_1 = Conv2D(32, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(inputs_img)
+        pool_1 = MaxPool2D()(conv_1)
+
+        #* layer 2
+        conv_21 = Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(pool_1)
+        conv_22 =  Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(conv_21)
+        norm_2 = BatchNormalization()(conv_22)
+        pool_2 = MaxPool2D()(norm_2)
+
+        pool_2 = Dropout(0.5)(pool_2)
+        
+        #* layer 3
+        conv_31 = Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(pool_2)
+        conv_32 =  Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(conv_31)
+        norm_3 = BatchNormalization()(conv_32)
+        pool_3 = MaxPool2D()(norm_3)
+        
+        #* layer 4
+        conv_41 = Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(pool_3)
+        conv_42 =  Conv2D(64, (3, 3), padding = "same", 
+                                activation='relu',
+                                kernel_initializer='he_normal')(conv_41)
+        norm_4 = BatchNormalization()(conv_42)
+        pool_4 = MaxPool2D()(norm_4)
+
+        pool_4 = Dropout(0.5)(pool_4)
+
+        flatten_img = Flatten()(pool_4)
+        dence_im_1 = Dense(1024, activation = "relu")(flatten_img)
+        dence_im_1 = Dropout(0.5)(dence_im_1)
+
+        dence_img_last = Dense(num_filters_last, 
+                                activation = "relu", 
+                                name='img_last_layer')(dence_im_1)
+
+        #! second part
+        inputs_features = Input(shape=input_features_shape, name='feature_inputs')
+        flatten_feat = Flatten()(inputs_features)
+        dence_f_1 = Dense(1024, activation = "relu")(flatten_feat)
+        dence_f_1 = Dropout(0.5)(dence_f_1)
+        dence_f_2 = Dense(1024, activation = "relu")(dence_f_1)
+        dence_f_2 = Dropout(0.5)(dence_f_2)
+
+        dence_features_last = Dense(num_filters_last,
+                                activation = "relu", 
+                                name='features_last_layer')(dence_f_2)
+
+        #! combine two outputs
+        combined = Concatenate()([dence_img_last, dence_features_last])
+        dence_combined = Dense(1024, activation = "relu")(combined)
+        dence_combined = Dropout(0.5)(dence_combined)
+        outputs = Dense(num_classes, activation = "softmax")(dence_combined)
+
+        #self.__model = Model
+
+
+        
+
+    def load_model(self, json_filename):
+        pass
+
+    def load_weights(self, h5_filename):
+        pass
+
+    
+
+
 def rect_to_bb(rect):
 	x = rect.left()
 	y = rect.top()
 	w = rect.right() - x
 	h = rect.bottom() - y
 	return (x, y, w, h)
-
 
 def shape_to_np(shape, dtype="int"):
 	coords = np.zeros((68, 2), dtype=dtype)

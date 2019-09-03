@@ -96,6 +96,7 @@ class DataPreprocessor:
         # 4 - anger      ->     1        ->      1          |           0
         # 5 - disgust    ->     2        ->      3          |           1
         # 6 - fear       ->     3        ->      4          |           2
+        # 9 - kiss
         assert isinstance(img_dir, str) and isinstance(file_format, str) 
         labels, data_path = [], []
         bbox, bbox_norm = [], []

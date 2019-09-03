@@ -573,7 +573,9 @@ def plot_hist(history_call):
 def train_features(load_model=False, num_features=76, model_id=''):
     im_rows, im_cols, channels = 96, 96, 1
     if num_features == 76:
-        x_data, y_data = load_facial_dataset('data\\muct\\imgs\\', 'data\\muct\\muct76_bbox.csv', True, (im_rows, im_cols), augment=True)
+        x_data, y_data = load_facial_dataset('data\\muct\\imgs\\', 
+                                            'data\\muct\\muct76_bbox.csv', 
+                                            True, (im_rows, im_cols), augment=False)
     elif num_features == 15:
         x_data, y_data = load_facial_data_kadle2d('data\\facial_features\\training.csv')
     else:

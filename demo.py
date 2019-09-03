@@ -38,12 +38,13 @@ def detect_features():
 def classify_faces():
     cap = cv2.VideoCapture(0)
     model = Emotion_Net()
-    model.load_model("models\\ins_resnet_v2_newdata_model.json")
-    model.load_weights("models\\ins_resnet_v2_newdata_model.h5")
+    model.load_model("models\\ins_resnet_v3model.json")
+    model.load_weights("models\\ins_resnet_v3model.h5")
     while True:
         ret, frame = cap.read()
 
-        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3)
+        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3, 
+                                    lbl_map={2:'anger', 3:'surprise', 0:'neutral', 1:'happiness', 4:'sadness'})
 
         cv2.imshow('vid', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -116,8 +117,8 @@ def run_facial_classifier():
             pred = model.predict(landmark)
             pred_class = np.argmax(pred)
             frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
-            frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 10), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
         #preds = model.predict(np.array(landmarks))
         cv2.imshow('vid', frame)
         output.write(frame)
@@ -135,3 +136,4 @@ if __name__ == "__main__":
     run_facial_classifier()
     #features_dlib()
     #detect_features()
+    #classify_faces()

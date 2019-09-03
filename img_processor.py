@@ -143,8 +143,11 @@ def train_keras_model(dataset_csv,
                 # sadness 477
                 x_data, y_data = load_dataset_no_face(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray,
                                 label_map = {'anger':2, 'surprise':3, 'neutral':0, 'happiness':1, 'sadness':4})
-                #x_data, y_data = load_dataset_no_face_custom(dataset_csv, new_size=(im_rows, im_cols), greyscale=gray, 
-                #                label_map = {'anger':2, 'surprise':3, 'neutral':0, 'happiness':1, 'sadness':4})
+                #x_data__, y_data__ = load_dataset_no_face_custom('data\\legend.csv', new_size=(im_rows, im_cols), greyscale=gray, 
+                #                label_map = {'anger':2, 'surprise':3, 'sadness':4, 
+                #                'ANGER':2, 'SURPRISE':3, 'SADNESS':4})
+                #x_data = np.concatenate((x_data, x_data__))
+                #y_data = np.concatenate((y_data, y_data__))
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
@@ -200,18 +203,18 @@ if __name__ == "__main__":
     n_classes = train_keras_model('data\\fer2013_filtered.csv', 
                                 im_shape=(im_rows, im_cols), 
                                 channels=channels, 
-                                epocs=30, 
+                                epocs=5, 
                                 batch_size=32,
                                 augment=False, 
                                 detect_face=False,
-                                load_weights=False, 
-                                model_id='ins_resnet_v2', 
+                                load_weights=True, 
+                                model_id='ins_resnet_v3', 
                                 save_model_id='ins_resnet_v3',
                                 plot_metrix=True, 
                                 arc=3)    
     
     print("TESTING COMBINED")
-    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v2_model", 
+    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v3model", 
                 n_classes, im_shape = (im_rows, im_cols), channels=channels, 
                 label_map={'anger':2, 'surprise':3, 'neutral':0, 'happiness':1, 'sadness':4})
 #     print("Testing on facesdb")
