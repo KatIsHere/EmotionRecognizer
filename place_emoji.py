@@ -15,12 +15,11 @@ def add_emoji_to_image(img, emoji, bounding_box):
     
     y0, y1 = bounding_box[0, 1], bounding_box[1, 1]
     size = y1 - y0
-    x0, x1 = max(center[0] - size // 2, 0), center[0] + size // 2
+    x0, x1 = max(center[0] - size // 2, 0), center[0] + (size + 1) // 2
   
     emoji = cv2.resize(emoji, (size, size))
 
     alpha_emoji = emoji[:, :, 3] / 255.0
-    alpha_emoji = np.array(alpha_emoji)
     alpha_img = 1.0 - alpha_emoji
 
     for c in range(0, 3):
@@ -28,14 +27,14 @@ def add_emoji_to_image(img, emoji, bounding_box):
 
     return result
 
+
 def add_all_emojis(img, list_emojis, list_bounding_boxes):
-  labels_map = {0 : 'neutral', 1:'happy', 2:'surprised', 3:'sad', 4:'angry', 5:'disgust', 6:'fear'})
-  n = len(list_emojis)
-  
-  for i in range(n):
-    emoji = labels_map(list_emojis[i])
-    bounding_box = list_bounding_boxes[i]
-    if(emoji != 'neutral'):
-      img = add_emoji_to_image(img, emoji, bounding_box)
-      
-  return img
+    labels_map = {0:'neutral', 1:'angry', 2:'disgust', 3:'fear', 4:'happy', 5:'sad', 6:'surprised'}
+    n = list_emojis.shape[0]
+    
+    for i in range(n):
+      emoji = labels_map[list_emojis[i]]
+      if (emoji != 'neutral'):
+        img = add_emoji_to_image(img, emoji, list_bounding_boxes[i])
+        
+    return img

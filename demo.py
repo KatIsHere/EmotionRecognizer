@@ -7,7 +7,7 @@ import random
 from keras.models import Sequential, model_from_json, Model 
 import dlib
 from classificator_with_features import convert_landmarks, rect_to_bb
-from place_emoji import add_emoji_to_image
+from place_emoji import add_emoji_to_image, add_all_emojis
 
 def detect_features():
     im_rows, im_cols, channels = 96, 96, 1
@@ -115,10 +115,10 @@ def run_facial_classifier():
         for k, rect in enumerate(rects):
             shape = predictor(img, rect)
             landmark = convert_landmarks(rect, shape)
-            landmark = np.array(landmark).reshape((-1, 68, 2))
+            landmark = np.array(landmark).reshape((68, 2))
             landmarks.append(landmark)
             bboxes.append([(rect.left(), rect.top()), (rect.right(), rect.bottom())])
-            #landmarks.append(convert_landmarks(rect, shape))
+            # landmarks.append(convert_landmarks(rect, shape))
             # landmark = convert_landmarks(rect, shape)
             # landmark = np.array(landmark).reshape((-1, 68, 2))
             # pred = model.predict(landmark)
@@ -126,10 +126,14 @@ def run_facial_classifier():
             # frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
             # frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
             #     cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
-        preds = model.predict(np.array(landmarks))
-        frame = add_emoji_to_image(frame, preds, bboxes)
+        landmarks = np.array(landmarks)
+        bboxes = np.array(bboxes)
+        if landmarks.shape[0] != 0:
+            preds = model.predict(landmarks)
+            preds = np.argmax(preds, axis=1)
+            frame = add_all_emojis(frame, preds, bboxes)
         cv2.imshow('vid', frame)
-        output.write(frame)
+        #output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         

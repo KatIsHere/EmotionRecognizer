@@ -28,22 +28,19 @@ class Combined_Facial_Net:
             if h5_filename is not None:
                 self.load_weights(h5_filename)
         elif input_img_shape and input_features_shape and num_classes:
-            self.__init_model__(input_img_shape, 
-                             input_features_shape, 
-                             num_classes)
+            #self.__model = self._features_model(input_features_shape, num_classes)
+            self._init_model_combined_(input_img_shape, 
+                              input_features_shape, 
+                              num_classes)
 
-    def __init_model__(self, input_img_shape, 
-                             input_features_shape, 
-                             num_classes,
-                             use_batch_norm=True,
-                             num_filters_last=32):
-        #! first part
+    def _img_model_(self, input_img_shape, output_filters):
         inputs_img = Input(shape=input_img_shape, name='img_inputs')
         #* layer 1
         conv_1 = Conv2D(32, (3, 3), padding = "same", 
                                 activation='relu',
                                 kernel_initializer='he_normal')(inputs_img)
         pool_1 = MaxPool2D()(conv_1)
+        pool_1 = Dropout(0.2)(pool_1)
 
         #* layer 2
         conv_21 = Conv2D(64, (3, 3), padding = "same", 
@@ -55,51 +52,62 @@ class Combined_Facial_Net:
         norm_2 = BatchNormalization()(conv_22)
         pool_2 = MaxPool2D()(norm_2)
 
-        pool_2 = Dropout(0.5)(pool_2)
+        pool_2 = Dropout(0.2)(pool_2)
         
         #* layer 3
-        conv_31 = Conv2D(64, (3, 3), padding = "same", 
+        conv_31 = Conv2D(128, (3, 3), padding = "same", 
                                 activation='relu',
                                 kernel_initializer='he_normal')(pool_2)
-        conv_32 =  Conv2D(64, (3, 3), padding = "same", 
+        conv_32 =  Conv2D(128, (3, 3), padding = "same", 
                                 activation='relu',
                                 kernel_initializer='he_normal')(conv_31)
         norm_3 = BatchNormalization()(conv_32)
         pool_3 = MaxPool2D()(norm_3)
+        pool_3 = Dropout(0.2)(pool_3)
         
-        #* layer 4
-        conv_41 = Conv2D(64, (3, 3), padding = "same", 
-                                activation='relu',
-                                kernel_initializer='he_normal')(pool_3)
-        conv_42 =  Conv2D(64, (3, 3), padding = "same", 
-                                activation='relu',
-                                kernel_initializer='he_normal')(conv_41)
-        norm_4 = BatchNormalization()(conv_42)
-        pool_4 = MaxPool2D()(norm_4)
+        # #* layer 4
+        # conv_41 = Conv2D(256, (3, 3), padding = "same", 
+        #                         activation='relu',
+        #                         kernel_initializer='he_normal')(pool_3)
+        # conv_42 =  Conv2D(256, (3, 3), padding = "same", 
+        #                         activation='relu',
+        #                         kernel_initializer='he_normal')(conv_41)
+        # norm_4 = BatchNormalization()(conv_42)
+        # pool_4 = MaxPool2D()(norm_4)
+        # pool_4 = Dropout(0.5)(pool_4)
 
-        pool_4 = Dropout(0.5)(pool_4)
-
-        flatten_img = Flatten()(pool_4)
+        flatten_img = Flatten()(pool_3)
         dence_im_1 = Dense(1024, activation = "relu")(flatten_img)
         dence_im_1 = Dropout(0.5)(dence_im_1)
 
-        dence_img_last = Dense(num_filters_last, 
+        dence_img_last = Dense(output_filters, 
                                 activation = "relu", 
                                 name='img_last_layer')(dence_im_1)
-        images = Model(inputs=inputs_img, outputs=dence_img_last)
+        images_m = Model(inputs=inputs_img, outputs=dence_img_last)
+        return images_m
 
-        #! second part
+    def _features_model(self, input_features_shape, output_filters):
         inputs_features = Input(shape=input_features_shape, name='feature_inputs')
         flatten_feat = Flatten()(inputs_features)
-        dence_f_1 = Dense(1024, activation = "relu")(flatten_feat)
+        dence_f_1 = Dense(512, activation = "relu", kernel_initializer='he_normal')(flatten_feat)
         dence_f_1 = Dropout(0.5)(dence_f_1)
-        dence_f_2 = Dense(1024, activation = "relu")(dence_f_1)
+        dence_f_2 = Dense(512, activation = "relu", kernel_initializer='he_normal')(dence_f_1)
         dence_f_2 = Dropout(0.5)(dence_f_2)
 
-        dence_features_last = Dense(num_filters_last,
+        dence_features_last = Dense(output_filters,
                                 activation = "relu", 
                                 name='features_last_layer')(dence_f_2)
-        features = Model(inputs=inputs_features, outputs=dence_features_last)
+        features_m = Model(inputs=inputs_features, outputs=dence_features_last)
+        return features_m
+
+    def _init_model_combined_(self, input_img_shape, 
+                             input_features_shape, 
+                             num_classes,
+                             num_filters_last=32):
+        #! first part
+        images = self._img_model_(input_img_shape, num_filters_last)
+        #! second part
+        features = self._features_model(input_features_shape, num_filters_last)
 
         #! combine two outputs
         combined = Concatenate()([images.output, features.output])
@@ -110,7 +118,7 @@ class Combined_Facial_Net:
         self.__model = Model(inputs=[images.input, features.input], outputs=model_outputs)
 
 
-    def train(self, images, features, labels, 
+    def train_combined(self, images, features, labels, 
                     optim='adam',
                     n_epochs=50, 
                     batch_size=32, 
@@ -139,6 +147,34 @@ class Combined_Facial_Net:
                                 validation_split = 0.1)
         return history
         
+    def train(self, x_input, labels, 
+                    optim='adam',
+                    n_epochs=50, 
+                    batch_size=32, 
+                    save_best_to=None):
+        self.__model.compile(loss = 'categorical_crossentropy', 
+                            optimizer = optim, 
+                            metrics = ["accuracy"])
+        if save_best_to is not None:
+            history = self.__model.fit(x_input, labels, 
+                                callbacks = [ModelCheckpoint(save_best_to, 
+                                                    monitor = "val_acc", 
+                                                    save_best_only = True, 
+                                                    save_weights_only = True, 
+                                                    mode = "auto")],
+                                epochs = n_epochs, 
+                                batch_size = batch_size,
+                                verbose = 1, 
+                                shuffle = True, 
+                                validation_split = 0.1)
+        else:
+            history = self.__model.fit(x_input, labels, 
+                                batch_size = batch_size,  \
+                                epochs = n_epochs, 
+                                verbose = 1, 
+                                shuffle = True, 
+                                validation_split = 0.1)
+        return history
 
 
     def load_model(self, json_filename):
@@ -283,11 +319,11 @@ def classify_emotions_with_features_combined_model(csv_filename, new_size, n_epo
         model = Combined_Facial_Net(input_img_shape = images_shape, 
                                     input_features_shape = feature_shape, 
                                     num_classes = n_classes)
-    history = model.train(images, features, labels, 
-                        optim='adam',
-                        n_epochs=n_epochs, 
-                        batch_size=batch_size, 
-                        save_best_to=None)
+    history = model.train_combined(images, features, labels, 
+                                    optim='adam',
+                                    n_epochs=n_epochs, 
+                                    batch_size=batch_size, 
+                                    save_best_to=None)
     
     model.save_weights('models\\' + model_id + 'model.h5')
     model.save_model('models\\' + model_id + 'model.json')
@@ -311,7 +347,7 @@ def classify_emotions_with_features_combined_model(csv_filename, new_size, n_epo
 if __name__=='__main__':
     #model = classify_emotions_with_features('data\\dataset.csv', batch_size=512, n_epochs=300, load=True)
     classify_emotions_with_features_combined_model('data\\dataset.csv', 
-                                    batch_size=32, new_size=(96, 96), 
-                                    n_epochs=50, model_id='facial_comb_')
+                                    batch_size=64, new_size=(96, 96), 
+                                    n_epochs=300, model_id='facial_comb_')
     plt.show()
     
