@@ -14,11 +14,18 @@ def add_emoji_to_image(img, emoji, bounding_box):
     center = (bounding_box[0] + bounding_box[1]) // 2
     
     y0, y1 = bounding_box[0, 1], bounding_box[1, 1]
-    height = y1 - y0
-    width = bounding_box[1, 0] - bounding_box[0, 0]  
-    x0, x1 = max(center[0] - height // 2, 0), min(center[0] + (height + 1) // 2, width)     # rectangle boundings check
-  
-    emoji = cv2.resize(emoji, (height, height))
+    height_emoji = y1 - y0
+    
+    width_image = img.shape[1]  
+    x0, x1 = max(center[0] - height_emoji // 2, 0), min(center[0] + (height_emoji + 1) // 2, width_image)     # rectangle boundings check 
+    width_emoji = x1 - x0
+
+    emoji = cv2.resize(emoji, (height_emoji, height_emoji))
+    if(width_emoji < height_emoji):
+      if (x0 == 0):
+        emoji = emoji[:, height_emoji - width_emoji :, :]
+      else:
+        emoji = emoji[:, : width_emoji, :]
 
     alpha_emoji = emoji[:, :, 3] / 255.0
     alpha_img = 1.0 - alpha_emoji
