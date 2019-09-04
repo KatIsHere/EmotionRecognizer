@@ -36,7 +36,7 @@ def add_emoji_to_image(img, emoji, bounding_box):
       if (y0 == 0):
         emoji = emoji[height_emoji - displayed_height_emoji:, :, :]
       else:
-        emoji = emoji[ :dispayed_height_emoji, :, :]
+        emoji = emoji[ :displayed_height_emoji, :, :]
 
     alpha_emoji = emoji[:, :, 3] / 255.0
     alpha_img = 1.0 - alpha_emoji

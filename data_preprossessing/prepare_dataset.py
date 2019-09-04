@@ -348,21 +348,40 @@ def prepare_data_no_contempt():
     # dt.save_csv(os.path.join(ROOT_DIR,'data\\dataset_jaffe.csv'))
 
 
+def localize_features(img, detector, predictor):
+    rects = detector(img, 1)
+    landmarks = []
+    for k, rect in enumerate(rects):
+        shape = predictor(img, rect)
+        landmarks = convert_landmarks(rect, shape)
+    if len(landmarks) != 0:
+        return ' '.join(str(item) for innerlist in landmarks for item in innerlist)
+    else:
+        return None
 
-def prepare_dataset_with_dlib(csv_filename, label_map):    
+def apply_augmentation(img, augment_code):
+    h, w = img.shape[:2]
+    if augment_code==0:
+        return cv2.flip(img, 0)
+    if augment_code==1:
+        M = cv2.getRotationMatrix2D((w//2, h//2), int(random.random() * 100) % 35 , 1.0)
+        return cv2.warpAffine(img, M, (w, h)) 
+
+
+def prepare_dataset_with_dlib(csv_filename):  
+    random.seed()  
     df = pd.read_csv(csv_filename)
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor(os.path.join(ROOT_DIR,'face_detector\\shape_predictor_68_face_landmarks.dat'))
+    predictor = dlib.shape_predictor(os.path.join(ROOT_DIR, 'face_detector\\shape_predictor_68_face_landmarks.dat'))
     features = []
+    random_augmentation = []
     for index, row in df.iterrows():
         img = cv2.imread(row['file'])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rects = detector(img, 1)
-        for k, rect in enumerate(rects):
-            shape = predictor(img, rect)
-            landmarks = convert_landmarks(rect, shape)
-        features.append(' '.join(str(item) for innerlist in landmarks for item in innerlist))
+        features.append(localize_features(img, detector, predictor))
+        random_augmentation.append(localize_features(apply_augmentation(img, int(random.random() * 10) % 2), detector, predictor))
     df = df.assign(features=features)
+    df = df.assign(random_augmentation=random_augmentation)
     df.to_csv(csv_filename)
 
 
@@ -378,5 +397,6 @@ if __name__ == "__main__":
     #               os.path.join(ROOT_DIR,'data\\fer2013_bbox.csv'))
 
     print("reading data...")
-    prepare_data_no_contempt()
+    prepare_dataset_with_dlib(os.path.join(ROOT_DIR,'data\\dataset.csv'))
+    #prepare_data_no_contempt()
     print("data saved")

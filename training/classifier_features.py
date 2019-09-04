@@ -264,9 +264,9 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
     print("Test score :", score[0])
     print("Test accuracy :", score[1], "\n")
     # model_json = model.to_json()
-    # with open(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.json'), 'w') as json_file:
+    # with open(os.path.join(ROOT_DIR,'saved_models\\dlib_facial_v2.json'), 'w') as json_file:
     #     json_file.write(model_json)
-    # model.save_weights(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.h5'))
+    # model.save_weights(os.path.join(ROOT_DIR,'saved_models\\dlib_facial_v2.h5'))
 
     return history_callback
 
@@ -275,7 +275,7 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
 if __name__=='__main__':
     print(os.path.abspath(os.path.join('..', 'utils')))
     history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
-                                                batch_size=512, n_epochs=300, load=True)
+                                                batch_size=512, n_epochs=3000, load=False)
     #history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
     #                                batch_size=64, new_size=(96, 96), 
     #                                n_epochs=300, model_id='facial_comb_')

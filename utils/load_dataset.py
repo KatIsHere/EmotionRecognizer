@@ -42,12 +42,20 @@ def load_dataset_with_facial_features(csv_filename, label_map, new_size=None, in
         landmarks = np.fromstring(row['features'], 'float32', sep=' ').reshape(68, 2)
         x_data.append(landmarks)
         y_data.append(label_map[row['label']])
+
+        if type(row['random_augmentation']) is str:
+            landmarks_augm = np.fromstring(row['random_augmentation'], 'float32', sep=' ')
+            x_data.append(np.reshape(landmarks_augm, (68, 2)))
+            y_data.append(label_map[row['label']])
+
         if include_images:
             im = load_img(row['file'], True, None)
             im = im[row['y0']:row['y1'], row['x0']:row['x1']]
             if new_size is not None:
                 im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
             images.append(im)
+            if type(row['random_augmentation']) is str:
+                images.append(im)
     #x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return  np.array(x_data),  np.array(y_data), np.array(images)
 
