@@ -9,9 +9,12 @@ from sklearn.utils import shuffle
 import random
 import sys, os
 from pathlib import Path
-from utils import load_img, convert_landmarks
 ROOT_DIR = Path(__file__).parents[1]
-sys.path.append(os.path.abspath(ROOT_DIR))
+if __name__ == '__main__':
+    from utils import load_img, convert_landmarks
+else:
+    sys.path.append(os.path.abspath(ROOT_DIR))
+    from utils.utils import load_img, convert_landmarks
 
 def load_dataset_and_cut_out_faces(csv_filename, label_map, greyscale=True, new_size = None):
     df = pd.read_csv(csv_filename)

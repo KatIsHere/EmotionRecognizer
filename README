@@ -1,19 +1,18 @@
 The task is to create an app that replaces a facial expression with an emodji
 
-At this stage two databases are used: 
+Project description:
+    The task is to create an app that finds all faces on a video and replaces them with an emodji, wich corresponds to persons facial expression
+    
+Restrictions:
+    * There are only 6 emotions so far: sadness, happiness, fear, anger, disgust, surprise
+    * Classifier will only work on a full face turned to the camera
+    * Nice lighting wil be a great plus too 
+
+To run the project simply launch demo.py 
+New model could be trained using training/classifier_features.py
+
+
+Databases used: 
     --- The Extended Cohn-Kanade Dataset (CK+) and can be found at http://www.consortium.ri.cmu.edu/ckagree/. 
     --- The Japanese Female Facial Expression (JAFFE). JAFFE can be found here: http://www.kasrl.org/jaffe.html
     --- http://app.visgraf.impa.br/database/faces/ - faces database
-
-
-Dataset description
-    Every dataset has been pre-processed and saved in a corresponding .csv file with table structure:
-            file_path   |   img_label   |   bounding box (x0, y0, x1, y1)   |   normed bounding box (x0, y0, x1, y1)
-    There was some confusion if the cnn should recognize contempt, so in .csv files 
-    with number 8 in a name contempt labels are: 
-    
-    0 : neutral, 1 : anger, 2 : contempt, 3 : disgust, 4 : fear, 5 : happy, 6 : sadness, 7 : surprise 
-    
-    In files withought 8 in the labele correspondance is: 
-    
-    0 : neutral, 1 : anger, 2 : disgust, 3 : fear, 4 : happy, 5 : sadness, 6 : surprise

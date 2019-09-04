@@ -11,13 +11,13 @@ def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmar
     cap = cv2.VideoCapture(0)
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
-    #win = dlib.image_window()
+    win = dlib.image_window()
     while True:
         ret, frame = cap.read()
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        #win.clear_overlay()
-        #win.set_image(img)
+        win.clear_overlay()
+        win.set_image(img)
         dets = detector(img)
         print("Number of faces detected: {}".format(len(dets)))
         for k, d in enumerate(dets):
@@ -28,17 +28,17 @@ def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmar
             #print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
             #                                        shape.part(1)))
             # Draw the face landmarks on the screen.
-            #win.add_overlay(shape)
+            win.add_overlay(shape)
 
-        #win.add_overlay(dets)
-        vec = np.empty([68, 2], dtype = int)
-        for b in range(68):
-            vec[b][0] = shape.part(b).x
-            vec[b][1] = shape.part(b).y
+        win.add_overlay(dets)
+        # vec = np.empty([68, 2], dtype = int)
+        # for b in range(68):
+        #     vec[b][0] = shape.part(b).x
+        #     vec[b][1] = shape.part(b).y
 
-        cv2.imshow('vid', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # cv2.imshow('vid', frame)
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
 
     # When everything done, release the capture
     cap.release()
@@ -46,6 +46,9 @@ def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmar
 
 
 def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face_landmarks.dat'):
+
+
+
     with open('saved_models\\dlib_facial.json', 'r') as json_file:
         model_json = json_file.read()
     model = model_from_json(model_json)
@@ -56,6 +59,18 @@ def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face
 
     cap = cv2.VideoCapture(0)
     vid_cod = cv2.VideoWriter_fourcc(*'XVID')
+
+    # Find OpenCV version
+    (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+     
+    if int(major_ver)  < 3 :
+        fps = cap.get(cv2.cv.CV_CAP_PROP_FPS)
+        print("Frames per second using video.get(cv2.cv.CV_CAP_PROP_FPS): {0}".format(fps))
+    else :
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
+
+
     #output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 20.0, (640,480))
     cv2.namedWindow("demo",cv2.WINDOW_FULLSCREEN)
     while(True):
@@ -95,5 +110,3 @@ def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face
 if __name__ == "__main__":
     run_facial_classifier()
     #features_dlib()
-    #detect_features()
-    #classify_faces()
