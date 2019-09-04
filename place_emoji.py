@@ -12,20 +12,31 @@ def add_emoji_to_image(img, emoji, bounding_box):
     emoji = cv2.imread(emoji_path, cv2.IMREAD_UNCHANGED)
     
     center = (bounding_box[0] + bounding_box[1]) // 2
+    height_image, width_image, channels = img.shape
     
     y0, y1 = bounding_box[0, 1], bounding_box[1, 1]
     height_emoji = y1 - y0
+    y0 = max(y0, 0)
+    y1 = min(y1, height_image)
+    displayed_height_emoji = y1 - y0
     
-    width_image = img.shape[1]  
+    
     x0, x1 = max(center[0] - height_emoji // 2, 0), min(center[0] + (height_emoji + 1) // 2, width_image)     # rectangle boundings check 
-    width_emoji = x1 - x0
+    displayed_width_emoji = x1 - x0
 
     emoji = cv2.resize(emoji, (height_emoji, height_emoji))
-    if(width_emoji < height_emoji):
+    
+    if(displayed_width_emoji < height_emoji):
       if (x0 == 0):
-        emoji = emoji[:, height_emoji - width_emoji :, :]
+        emoji = emoji[:, height_emoji - displayed_width_emoji :, :]
       else:
-        emoji = emoji[:, : width_emoji, :]
+        emoji = emoji[:, : displayed_width_emoji, :]
+        
+    if(displayed_height_emoji < height_emoji):
+      if (y0 == 0):
+        emoji = emoji[height_emoji - displayed_height_emoji:, :, :]
+      else:
+        emoji = emoji[ :dispayed_height_emoji, :, :]
 
     alpha_emoji = emoji[:, :, 3] / 255.0
     alpha_img = 1.0 - alpha_emoji
