@@ -45,18 +45,18 @@ def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmar
     cv2.destroyAllWindows()
 
 
-def run_facial_classifier():
+def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face_landmarks.dat'):
     with open('saved_models\\dlib_facial.json', 'r') as json_file:
         model_json = json_file.read()
     model = model_from_json(model_json)
     model.load_weights('saved_models\\dlib_facial.h5')
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('face_detector\\shape_predictor_68_face_landmarks.dat')
+    predictor = dlib.shape_predictor(predictor_path)
     label_map = {0:'neutral', 1:'angry', 2:'disgust', 3:'fear', 4:'happy', 5:'sad', 6:'surprised'}
 
     cap = cv2.VideoCapture(0)
     vid_cod = cv2.VideoWriter_fourcc(*'XVID')
-    output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 20.0, (640,480))
+    #output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 20.0, (640,480))
     cv2.namedWindow("demo",cv2.WINDOW_FULLSCREEN)
     while(True):
         ret, frame = cap.read()
@@ -80,14 +80,14 @@ def run_facial_classifier():
             #preds = np.reshape(preds, (-1, 1))
             preds = np.array(preds)
             frame = add_markings(frame, preds, bboxes, place_emodji=True)
-        frame = np.concatenate((frame, frame_clean))
+        frame = np.concatenate((frame, frame_clean), axis=1)
         cv2.imshow('demo', frame)
         #output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
     cap.release()
-    output.release()
+    #output.release()
     cv2.destroyAllWindows()
 
 
