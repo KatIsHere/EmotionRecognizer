@@ -48,5 +48,5 @@ def add_markings(img, list_emojis, list_bounding_boxes, place_emodji=True,
         if place_emodji and emotion != 'neutral':
                 img = add_emoji_to_image(img, emotion, list_bounding_boxes[i])
         else:   # for testing boundig box and classifier
-            img = add_markings(img, emotion, list_bounding_boxes[i])        
+            img = add_bounding_box_with_label(img, emotion, list_bounding_boxes[i])        
     return img

@@ -107,9 +107,10 @@ def run_facial_classifier():
     cap = cv2.VideoCapture(0)
     vid_cod = cv2.VideoWriter_fourcc(*'XVID')
     output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 20.0, (640,480))
-
+    cv2.namedWindow("demo",cv2.WINDOW_FULLSCREEN)
     while(True):
         ret, frame = cap.read()
+        frame_clean = frame.copy()
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rects = detector(img, 1)
         landmarks = []
@@ -126,8 +127,11 @@ def run_facial_classifier():
         if landmarks.shape[0] != 0:
             preds = model.predict(landmarks)
             preds = np.argmax(preds, axis=1)
+            #preds = np.reshape(preds, (-1, 1))
+            preds = np.array(preds)
             frame = add_markings(frame, preds, bboxes, place_emodji=True)
-        cv2.imshow('vid', frame)
+        frame = np.concatenate((frame, frame_clean))
+        cv2.imshow('demo', frame)
         #output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
