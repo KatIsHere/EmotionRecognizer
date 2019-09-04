@@ -45,7 +45,7 @@ def add_markings(img, list_emojis, list_bounding_boxes, place_emodji=True,
 
     for i in range(n):
         emotion = labels_map[list_emojis[i]]
-        if place_emodji and emotion != 'neutral':
+        if place_emodji and emotion != 'neutral':   # placing emodji over the face
                 img = add_emoji_to_image(img, emotion, list_bounding_boxes[i])
         else:   # for testing boundig box and classifier
             img = add_bounding_box_with_label(img, emotion, list_bounding_boxes[i])        

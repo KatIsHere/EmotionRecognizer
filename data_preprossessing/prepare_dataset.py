@@ -1,14 +1,19 @@
 import pandas as pd
 import os
-import glob
-import xml.etree.ElementTree as ET
 import numpy as np
-from face_detector import init_model_dnn, find_faces_dnn
-from load_pics import load_img
 import random
 import cv2
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+import dlib
+from pathlib import Path
+import sys, os
+ROOT_DIR = Path(__file__).parents[1]
+sys.path.append(os.path.abspath(ROOT_DIR))
+from face_detector.face_detector import init_model_dnn, find_faces_dnn
+from utils.utils import convert_landmarks, load_img
+ 
+
 
 class DataPreprocessor:
     #   0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
@@ -324,85 +329,53 @@ class PrepareMUCT:
         self._datafr.to_csv(filename)
 
 
-# 'contempt' is included in the dataset
-def prepare_data_with_contempt():
-    dt = DataPreprocessor()
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
-    dt.save_csv('data\\dataset_kanade_8.csv')
-    dt.load_facesdb('data\\facesdb\\', label_map = {0 : 0, 1: 5, 2 : 6, 3 : 7, 4: 1, 5 : 3, 6 : 4})
-    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 })
-    dt.save_csv('data\\dataset_8.csv')
-    dt.clear()
-    dt.load_facesdb('data\\facesdb\\')
-    dt.save_csv('data\\dataset_facesdb_8.csv')
-    dt.clear()
-    dt.load_jaffe("data\\jaffe\\", label_map = {'NE' : 0, 'AN' : 1, 'DI' : 3, 'FE' : 4, 'HA' : 5, 'SA' : 6, 'SU' : 7 })
-    dt.save_csv('data\\dataset_jaffe_8.csv')
-
-
 # 'contempt' is excluded from the dataset
 def prepare_data_no_contempt():
     dt = DataPreprocessor()
-    # dt.load_custom('data\\images\\', 'data\\legend.csv', 'data\\legend_with_bboxes.csv')
-    dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\")
-    # #dt.save_csv('data\\dataset_kanade.csv')
-    dt.load_facesdb('data\\facesdb\\')
-    dt.load_jaffe("data\\jaffe\\")
-    dt.save_csv('data\\dataset.csv')
+    # dt.load_custom(os.path.join(ROOT_DIR,'data\\images\\'), os.path.join(ROOT_DIR,'data\\legend.csv'), 
+    #               os.path.join(ROOT_DIR,'data\\legend_with_bboxes.csv'))
+    dt.load_kanade(os.path.join(ROOT_DIR,"data\\kanade\\emotion\\"), 
+                    os.path.join(ROOT_DIR,"data\\kanade\\cohn-kanade-images\\"))
+    # #dt.save_csv(os.path.join(ROOT_DIR,'data\\dataset_kanade.csv')
+    dt.load_facesdb(os.path.join(ROOT_DIR,'data\\facesdb\\'))
+    dt.load_jaffe(os.path.join(ROOT_DIR,"data\\jaffe\\"))
+    dt.save_csv(os.path.join(ROOT_DIR,'data\\dataset.csv'))
     # dt.clear()
-    # dt.load_facesdb('data\\facesdb\\')
-    # dt.save_csv('data\\dataset_facesdb.csv')
+    # dt.load_facesdb(os.path.join(ROOT_DIR,'data\\facesdb\\'))
+    # dt.save_csv(os.path.join(ROOT_DIR,'data\\dataset_facesdb.csv'))
     # dt.clear()
-    # dt.load_jaffe("data\\jaffe\\")
-    # dt.save_csv('data\\dataset_jaffe.csv')
+    # dt.load_jaffe(os.path.join(ROOT_DIR,"data\\jaffe\\"))
+    # dt.save_csv(os.path.join(ROOT_DIR,'data\\dataset_jaffe.csv'))
 
 
-def plot_density(csv_filename, label_map = {'anger':0, 'surprise':5, 'disgust':1, 'fear':2, 'neutral':6, 'happiness':3, 'sadness':4, 
-                    'ANGER':0, 'SURPRISE':5, 'DISGUST':1, 'FEAR':2, 'NEUTRAL':6, 'HAPPINESS':3, 'SADNESS':4}):
-    """
-        0 ----- 'anger', 
-        1 ----- 'disgust'
-        2 ----- 'fear'
-        3 ----- 'happiness'
-        4 ----- 'sadness'
-        5 ----- 'surprise'
-        6 ----- 'neutral'
-    """
+
+def prepare_dataset_with_dlib(csv_filename, label_map):    
     df = pd.read_csv(csv_filename)
-    c = np.zeros(7)
-    for it, row in df.iterrows():
-        if row['emotion'] in label_map:
-            c[label_map[row['emotion']]] += 1
-    plt.plot([0, 1, 2, 3, 4, 5, 6], c, 'o')
-    #n, bins, patches = plt.hist(c, 7, facecolor='blue', alpha=0.5)
-    plt.show()
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(os.path.join(ROOT_DIR,'face_detector\\shape_predictor_68_face_landmarks.dat'))
+    features = []
+    for index, row in df.iterrows():
+        img = cv2.imread(row['file'])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        rects = detector(img, 1)
+        for k, rect in enumerate(rects):
+            shape = predictor(img, rect)
+            landmarks = convert_landmarks(rect, shape)
+        features.append(' '.join(str(item) for innerlist in landmarks for item in innerlist))
+    df = df.assign(features=features)
+    df.to_csv(csv_filename)
 
-
-def plot_density_2(csv_filename):
-    """
-        0 ----- 'anger', 
-        1 ----- 'disgust'
-        2 ----- 'fear'
-        3 ----- 'happiness'
-        4 ----- 'sadness'
-        5 ----- 'surprise'
-        6 ----- 'neutral'
-    """
-    df = pd.read_csv(csv_filename)
-    c = np.zeros(7)
-    for it, row in df.iterrows():
-        c[int(row['label'])] += 1
-    plt.plot([0, 1, 2, 3, 4, 5, 6], c, 'o')
-    #n, bins, patches = plt.hist(c, 7, facecolor='blue', alpha=0.5)
-    plt.show()
 
 
 if __name__ == "__main__":
     random.seed()
-    #plot_density_2('data\\dataset.csv')
+    #plot_density_2(os.path.join(ROOT_DIR,'data\\dataset.csv'))
     #dt = DataPreprocessor()
-    #dt.load_kanade("data\\kanade\\emotion\\", "data\\kanade\\cohn-kanade-images\\", include_contempt=True)
-    #dt.load_and_pross_fer2013('data\\fer2013.csv', 'data\\fer2013_bbox.csv')
+    #dt.load_kanade(os.path.join(ROOT_DIR,"data\\kanade\\emotion\\"), 
+    #               os.path.join(ROOT_DIR,"data\\kanade\\cohn-kanade-images\\"), 
+    #               include_contempt=True)
+    #dt.load_and_pross_fer2013(os.path.join(ROOT_DIR,'data\\fer2013.csv'), 
+    #               os.path.join(ROOT_DIR,'data\\fer2013_bbox.csv'))
 
     print("reading data...")
     prepare_data_no_contempt()

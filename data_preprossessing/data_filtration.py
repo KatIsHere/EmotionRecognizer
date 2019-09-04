@@ -2,6 +2,10 @@ import numpy as np
 import cv2
 #from img_processor import detect_and_classify
 import pandas as pd
+import os
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).parents[1]
 
 # 9200
 def filter_fer_scv(csv_filename, csv_new_f, 
@@ -50,5 +54,8 @@ def filter_fer(csv_filename, csv_f_new, csv_old, thresh=8,
 
 
 if __name__ == "__main__":
-    #filter_fer('data\\fer2013new.csv', 'data\\fer2013_processed.csv', 'data\\fer2013.csv')
-    filter_fer_scv('data\\fer2013_processed.csv', 'data\\fer2013_filtered_9000.csv')
+    #filter_fer(os.path.join(ROOT_DIR, 'data\\fer2013new.csv'), 
+    #           os.path.join(ROOT_DIR, 'data\\fer2013_processed.csv'), 
+    #           os.path.join(ROOT_DIR, 'data\\fer2013.csv'))
+    filter_fer_scv(os.path.join(ROOT_DIR, 'data\\fer2013_processed.csv'), 
+                    os.path.join(ROOT_DIR, 'data\\fer2013_filtered_9000.csv'))

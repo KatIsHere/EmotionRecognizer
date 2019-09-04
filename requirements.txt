@@ -1,7 +1,10 @@
-Python packages required:
-tensorflow
-keras
-opencv-python
-Pillow
-numpy
-sklearn
+matplotlib           3.0.3
+numpy                1.16.4
+opencv-python        4.1.0.25
+pandas               0.25.0
+scikit-learn         0.21.3
+tensorflow-gpu       1.13.1
+Keras                2.2.4
+Keras-Applications   1.0.7
+Keras-Preprocessing  1.0.9
+dlib                 19.17.0

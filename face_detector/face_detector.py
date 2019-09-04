@@ -1,11 +1,14 @@
 import cv2
 import numpy as np
+from pathlib import Path
+import sys, os
+ROOT_DIR = Path(__file__).parents[1]
 
 def load_haar_cascade(face = True):
     if face:
-        cascades = cv2.CascadeClassifier('face_detection\\haarcascade_frontalface_default.xml')
+        cascades = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     else:
-        cascades = cv2.CascadeClassifier('face_detection\\haarcascade_eye.xml')
+        cascades = cv2.CascadeClassifier('haarcascade_eye.xml')
     return cascades
 
 
@@ -40,8 +43,8 @@ def faces_from_database_haar(x_data, new_size=None):
     return new_data
 
 def init_model_dnn():
-    modelFile = "face_detection\\opencv_face_detector_uint8.pb"
-    configFile = "face_detection\\opencv_face_detector.pbtxt"
+    modelFile = os.path.join(ROOT_DIR, "face_detector\\opencv_face_detector_uint8.pb")
+    configFile = os.path.join(ROOT_DIR, "face_detector\\opencv_face_detector.pbtxt")
     net = cv2.dnn.readNetFromTensorflow(modelFile, configFile)
     return net
 

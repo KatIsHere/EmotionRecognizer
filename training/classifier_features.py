@@ -7,15 +7,21 @@ from keras.layers import Conv2D, MaxPool2D, MaxPooling2D, BatchNormalization, Co
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
-from facial_feature_extractor import plot_hist
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 import random
 import cv2
 import dlib
-from load_pics import load_img
 import pandas as pd
-from facial_feature_extractor import Facial_Feature_Net
+import importlib.util
+import sys, os
+from pathlib import Path
+#import core
+
+ROOT_DIR = Path(__file__).parents[1]
+sys.path.append(os.path.abspath(ROOT_DIR))
+from utils.load_dataset import load_dataset_with_facial_features
+
 
 class Combined_Facial_Net:
     def __init__(self, input_img_shape = None, 
@@ -183,68 +189,6 @@ class Combined_Facial_Net:
         with open(json_filename, 'w') as json_file:
             json_file.write(model_json)
 
-  
-
-def rect_to_bb(rect):
-	x = rect.left()
-	y = rect.top()
-	w = rect.right() - x
-	h = rect.bottom() - y
-	return (x, y, w, h)
-
-def shape_to_np(shape, dtype="int"):
-	coords = np.zeros((68, 2), dtype=dtype)
-	for i in range(68):
-		coords[i] = (shape.part(i).x, shape.part(i).y)
-	return coords
-
-def convert_landmarks(rect, shape):
-    x, y, w, h = rect_to_bb(rect)
-    cords = shape_to_np(shape, dtype='float32')
-    cords -= [x, y]
-    cords = 2*cords / [w, h] - 1    # normalize all landmarks
-    return cords
-
-def load_data(csv_filename, label_map, new_size=None, include_images=False):
-    df = pd.read_csv(csv_filename)
-    #Model = Facial_Feature_Net()
-    #Model.load_model("models\\76_facial_model.json")
-    #Model.load_weights("models\\76_facial_model.h5")
-    x_data, y_data = [], []
-    images = []
-    for index, row in df.iterrows():
-        landmarks = np.fromstring(row['features'], 'float32', sep=' ').reshape(68, 2)
-        x_data.append(landmarks)
-        y_data.append(label_map[row['label']])
-        if include_images:
-            im = load_img(row['file'], True, None)
-            im = im[row['y0']:row['y1'], row['x0']:row['x1']]
-            if new_size is not None:
-                im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
-            images.append(im)
-    #x_data, y_data = shuffle(x_data, y_data, random_state=42)
-    return  np.array(x_data),  np.array(y_data), np.array(images)
-
-def load_dataset(csv_filename, label_map):
-    df = pd.read_csv(csv_filename)
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('face_detection\\shape_predictor_68_face_landmarks.dat')
-    x_data, y_data = [], []
-    features = []
-    for index, row in df.iterrows():
-        img = cv2.imread(row['file'])
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rects = detector(img, 1)
-        for k, rect in enumerate(rects):
-            shape = predictor(img, rect)
-            landmarks = convert_landmarks(rect, shape)
-        x_data.append(landmarks)
-        y_data.append(label_map[row['label']])
-        features.append(' '.join(str(item) for innerlist in landmarks for item in innerlist))
-    df = df.assign(features=features)
-    df.to_csv(csv_filename)
-    x_data, y_data = shuffle(x_data, y_data, random_state=random.seed())
-    return  np.array(x_data),  np.array(y_data)
 
 def plot_loss(history):    
     plt.subplot(2,2,1)
@@ -261,9 +205,36 @@ def plot_loss(history):
     plt.plot(history.history['val_acc'])
 
 
+def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
+    features, labels, images = load_dataset_with_facial_features(csv_filename, include_images=True, new_size=new_size,
+                    label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
+    #x_data = np.reshape(x_data, (-1, 68, 2, 1))
+    feature_shape = features.shape[1:]
+    images_shape = (new_size[0], new_size[1], 1)
+    images = np.reshape(images, (-1, new_size[0], new_size[1], 1))
+    n_classes = np.unique(labels).shape[0]
+    labels = np_utils.to_categorical(labels, n_classes)
+    if load:
+        model = Combined_Facial_Net(json_filename=os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.json'), 
+                                    h5_filename=os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.h5'))
+    else:
+        model = Combined_Facial_Net(input_img_shape = images_shape, 
+                                    input_features_shape = feature_shape, 
+                                    num_classes = n_classes)
+    history = model.train_combined(images, features, labels, 
+                                    optim='adam',
+                                    n_epochs=n_epochs, 
+                                    batch_size=batch_size, 
+                                    save_best_to=None)
+    
+    model.save_weights(os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.h5'))
+    model.save_model(os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.json'))
+
+    return history
+
 
 def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load = False):
-    x_data, y_data, _ = load_data(csv_filename,
+    x_data, y_data, _ = load_dataset_with_facial_features(csv_filename,
                     label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
     #x_data = np.reshape(x_data, (-1, 68, 2, 1))
     n_classes = np.unique(y_data).shape[0]
@@ -271,10 +242,10 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
     x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.15, random_state=42)
 
     if load:
-        with open('models\\dlib_facial.json', 'r') as json_file:
+        with open(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.json'), 'r') as json_file:
             model_json = json_file.read()
         model = model_from_json(model_json)
-        model.load_weights('models\\dlib_facial.h5')
+        model.load_weights(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.h5'))
     else:
         model = Sequential()
         model.add(Flatten())
@@ -293,47 +264,21 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
     print("Test score :", score[0])
     print("Test accuracy :", score[1], "\n")
     # model_json = model.to_json()
-    # with open('models\\dlib_facial.json', 'w') as json_file:
+    # with open(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.json'), 'w') as json_file:
     #     json_file.write(model_json)
-    # model.save_weights('models\\dlib_facial.h5')
+    # model.save_weights(os.path.join(ROOT_DIR,'saved_models\\dlib_facial.h5'))
 
-    plot_loss(history_callback)
-    return model
+    return history_callback
 
-
-def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
-    features, labels, images = load_data(csv_filename, include_images=True, new_size=new_size,
-                    label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
-    #x_data = np.reshape(x_data, (-1, 68, 2, 1))
-    feature_shape = features.shape[1:]
-    images_shape = (new_size[0], new_size[1], 1)
-    images = np.reshape(images, (-1, new_size[0], new_size[1], 1))
-    n_classes = np.unique(labels).shape[0]
-    labels = np_utils.to_categorical(labels, n_classes)
-    if load:
-        model = Combined_Facial_Net(json_filename='models\\' + model_id + 'model.json', 
-                                    h5_filename='models\\' + model_id + 'model.h5')
-    else:
-        model = Combined_Facial_Net(input_img_shape = images_shape, 
-                                    input_features_shape = feature_shape, 
-                                    num_classes = n_classes)
-    history = model.train_combined(images, features, labels, 
-                                    optim='adam',
-                                    n_epochs=n_epochs, 
-                                    batch_size=batch_size, 
-                                    save_best_to=None)
-    
-    model.save_weights('models\\' + model_id + 'model.h5')
-    model.save_model('models\\' + model_id + 'model.json')
-
-    plot_loss(history)
-    return model
 
 
 if __name__=='__main__':
-    #model = classify_emotions_features('data\\dataset.csv', batch_size=512, n_epochs=300, load=True)
-    classify_emotions_combined_model('data\\dataset.csv', 
-                                    batch_size=64, new_size=(96, 96), 
-                                    n_epochs=300, model_id='facial_comb_')
+    print(os.path.abspath(os.path.join('..', 'utils')))
+    history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+                                                batch_size=512, n_epochs=300, load=True)
+    #history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+    #                                batch_size=64, new_size=(96, 96), 
+    #                                n_epochs=300, model_id='facial_comb_')
+    plot_loss(history_callback)
     plt.show()
     

@@ -1,63 +1,13 @@
 import numpy as np
 import cv2
-from keras_model import Emotion_Net
-from facial_feature_extractor import Facial_Feature_Net, detect_and_find_features
-from img_processor import detect_and_classify
 import random
 from keras.models import Sequential, model_from_json, Model 
 import dlib
-from classificator_with_features import convert_landmarks, rect_to_bb
 from place_emoji import add_markings
+from utils.utils import convert_landmarks
 
-def detect_features():
-    # run custom feature localizer
-    im_rows, im_cols, channels = 96, 96, 1
-    
-    Model = Facial_Feature_Net()
-    Model.load_model("models\\76_facial_model.json")
-    Model.load_weights("models\\76_facial_model.h5")
 
-    cap = cv2.VideoCapture(0)
-    
-    while(True):
-        ret, frame = cap.read()
-
-        frames = detect_and_find_features(frame, Model, new_size=(im_rows, im_cols))
-        if frames is None:
-            cv2.imshow('face : 0', frame)
-        else:
-            i = 0
-            for frame in frames: 
-                cv2.imshow('face : ' + str(i), frame)
-                i += 1
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # When everything done, release the capture
-    cap.release()
-    cv2.destroyAllWindows()
-
-def classify_faces():
-    # run facial classifier, based on cnn on kadle data
-    cap = cv2.VideoCapture(0)
-    model = Emotion_Net()
-    model.load_model("models\\ins_resnet_v3model.json")
-    model.load_weights("models\\ins_resnet_v3model.h5")
-    while True:
-        ret, frame = cap.read()
-
-        frame = detect_and_classify(frame, model, new_size=(96, 96), channels=3, 
-                                    lbl_map={2:'anger', 3:'surprise', 0:'neutral', 1:'happiness', 4:'sadness'})
-
-        cv2.imshow('vid', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # When everything done, release the capture
-    cap.release()
-    cv2.destroyAllWindows()
-
-def features_dlib(predictor_path='face_detection\\shape_predictor_68_face_landmarks.dat'):
+def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmarks.dat'):
     cap = cv2.VideoCapture(0)
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
@@ -96,12 +46,12 @@ def features_dlib(predictor_path='face_detection\\shape_predictor_68_face_landma
 
 
 def run_facial_classifier():
-    with open('models\\dlib_facial.json', 'r') as json_file:
+    with open('saved_models\\dlib_facial.json', 'r') as json_file:
         model_json = json_file.read()
     model = model_from_json(model_json)
-    model.load_weights('models\\dlib_facial.h5')
+    model.load_weights('saved_models\\dlib_facial.h5')
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('face_detection\\shape_predictor_68_face_landmarks.dat')
+    predictor = dlib.shape_predictor('face_detector\\shape_predictor_68_face_landmarks.dat')
     label_map = {0:'neutral', 1:'angry', 2:'disgust', 3:'fear', 4:'happy', 5:'sad', 6:'surprised'}
 
     cap = cv2.VideoCapture(0)
