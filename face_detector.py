@@ -89,15 +89,3 @@ def faces_from_database_dnn(x_data, new_size=None, to_greyscale=False):
         #new_data = np.vstack([new_data, found_face])
         new_data.append(found_face)
     return new_data
-
-    
-
-
-
-# TODO: write a solution using HOG detector
-def cut_out_faces_HOG(img, new_size=None):
-    pass
-
-def faces_from_database_HOG(x_data, new_size=None):
-    pass
-

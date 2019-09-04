@@ -64,17 +64,6 @@ class Combined_Facial_Net:
         norm_3 = BatchNormalization()(conv_32)
         pool_3 = MaxPool2D()(norm_3)
         pool_3 = Dropout(0.2)(pool_3)
-        
-        # #* layer 4
-        # conv_41 = Conv2D(256, (3, 3), padding = "same", 
-        #                         activation='relu',
-        #                         kernel_initializer='he_normal')(pool_3)
-        # conv_42 =  Conv2D(256, (3, 3), padding = "same", 
-        #                         activation='relu',
-        #                         kernel_initializer='he_normal')(conv_41)
-        # norm_4 = BatchNormalization()(conv_42)
-        # pool_4 = MaxPool2D()(norm_4)
-        # pool_4 = Dropout(0.5)(pool_4)
 
         flatten_img = Flatten()(pool_3)
         dence_im_1 = Dense(1024, activation = "relu")(flatten_img)
@@ -111,12 +100,12 @@ class Combined_Facial_Net:
 
         #! combine two outputs
         combined = Concatenate()([images.output, features.output])
-        dence_combined = Dense(1024, activation = "relu")(combined)
-        dence_combined = Dropout(0.5)(dence_combined)
-        model_outputs = Dense(num_classes, activation = "softmax")(dence_combined)
+        #dence_combined = Dense(1024, activation = "relu")(combined)
+        #dence_combined = Dropout(0.5)(dence_combined)
+        #model_outputs = Dense(num_classes, activation = "softmax")(dence_combined)
+        model_outputs = Dense(num_classes, activation = "softmax")(combined)
 
         self.__model = Model(inputs=[images.input, features.input], outputs=model_outputs)
-
 
     def train_combined(self, images, features, labels, 
                     optim='adam',
@@ -176,13 +165,11 @@ class Combined_Facial_Net:
                                 validation_split = 0.1)
         return history
 
-
     def load_model(self, json_filename):
         with open(json_filename, 'r') as json_file:
             model_json = json_file.read()
         self.__model = model_from_json(model_json)
             
-
     def load_weights(self, h5_filename):
         self.__model.load_weights(h5_filename)
 
@@ -190,15 +177,13 @@ class Combined_Facial_Net:
         """Saves model weights to .h5 file"""
         self.__model.save_weights(h5_filename)
 
-
     def save_model(self, json_filename):
         """Saves model structure to json file"""
         model_json = self.__model.to_json()
         with open(json_filename, 'w') as json_file:
             json_file.write(model_json)
 
-    
-
+  
 
 def rect_to_bb(rect):
 	x = rect.left()
@@ -211,7 +196,6 @@ def shape_to_np(shape, dtype="int"):
 	coords = np.zeros((68, 2), dtype=dtype)
 	for i in range(68):
 		coords[i] = (shape.part(i).x, shape.part(i).y)
- 
 	return coords
 
 def convert_landmarks(rect, shape):
@@ -262,7 +246,23 @@ def load_dataset(csv_filename, label_map):
     x_data, y_data = shuffle(x_data, y_data, random_state=random.seed())
     return  np.array(x_data),  np.array(y_data)
 
-def classify_emotions_with_features(csv_filename, n_epochs=100, batch_size=32, load = False):
+def plot_loss(history):    
+    plt.subplot(2,2,1)
+    plt.title('training loss')
+    plt.plot(history.history['loss'])
+    plt.subplot(2,2,2)
+    plt.title('training accuracy')
+    plt.plot(history.history['acc'])
+    plt.subplot(2,2,3)
+    plt.title('testing loss')
+    plt.plot(history.history['val_loss'])
+    plt.subplot(2,2,4)
+    plt.title('testing accuracy')
+    plt.plot(history.history['val_acc'])
+
+
+
+def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load = False):
     x_data, y_data, _ = load_data(csv_filename,
                     label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
     #x_data = np.reshape(x_data, (-1, 68, 2, 1))
@@ -277,7 +277,6 @@ def classify_emotions_with_features(csv_filename, n_epochs=100, batch_size=32, l
         model.load_weights('models\\dlib_facial.h5')
     else:
         model = Sequential()
-        #model.add(Conv2D())
         model.add(Flatten())
         model.add(Dense(512, activation = "relu", kernel_initializer='he_normal'))
         model.add(Dropout(0.5))     # reg
@@ -298,12 +297,11 @@ def classify_emotions_with_features(csv_filename, n_epochs=100, batch_size=32, l
     #     json_file.write(model_json)
     # model.save_weights('models\\dlib_facial.h5')
 
-    plot_hist(history_callback)
+    plot_loss(history_callback)
     return model
 
 
-
-def classify_emotions_with_features_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
+def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
     features, labels, images = load_data(csv_filename, include_images=True, new_size=new_size,
                     label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
     #x_data = np.reshape(x_data, (-1, 68, 2, 1))
@@ -327,26 +325,14 @@ def classify_emotions_with_features_combined_model(csv_filename, new_size, n_epo
     
     model.save_weights('models\\' + model_id + 'model.h5')
     model.save_model('models\\' + model_id + 'model.json')
-    
-    plt.subplot(2,2,1)
-    plt.title('training loss')
-    plt.plot(history.history['loss'])
-    plt.subplot(2,2,2)
-    plt.title('training accuracy')
-    plt.plot(history.history['acc'])
-    plt.subplot(2,2,3)
-    plt.title('testing loss')
-    plt.plot(history.history['val_loss'])
-    plt.subplot(2,2,4)
-    plt.title('testing accuracy')
-    plt.plot(history.history['val_acc'])
 
+    plot_loss(history)
     return model
 
 
 if __name__=='__main__':
-    #model = classify_emotions_with_features('data\\dataset.csv', batch_size=512, n_epochs=300, load=True)
-    classify_emotions_with_features_combined_model('data\\dataset.csv', 
+    #model = classify_emotions_features('data\\dataset.csv', batch_size=512, n_epochs=300, load=True)
+    classify_emotions_combined_model('data\\dataset.csv', 
                                     batch_size=64, new_size=(96, 96), 
                                     n_epochs=300, model_id='facial_comb_')
     plt.show()

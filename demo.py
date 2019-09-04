@@ -7,9 +7,10 @@ import random
 from keras.models import Sequential, model_from_json, Model 
 import dlib
 from classificator_with_features import convert_landmarks, rect_to_bb
-from place_emoji import add_emoji_to_image, add_all_emojis
+from place_emoji import add_markings
 
 def detect_features():
+    # run custom feature localizer
     im_rows, im_cols, channels = 96, 96, 1
     
     Model = Facial_Feature_Net()
@@ -36,8 +37,8 @@ def detect_features():
     cap.release()
     cv2.destroyAllWindows()
 
-
 def classify_faces():
+    # run facial classifier, based on cnn on kadle data
     cap = cv2.VideoCapture(0)
     model = Emotion_Net()
     model.load_model("models\\ins_resnet_v3model.json")
@@ -93,6 +94,7 @@ def features_dlib(predictor_path='face_detection\\shape_predictor_68_face_landma
     cap.release()
     cv2.destroyAllWindows()
 
+
 def run_facial_classifier():
     with open('models\\dlib_facial.json', 'r') as json_file:
         model_json = json_file.read()
@@ -118,26 +120,18 @@ def run_facial_classifier():
             landmark = np.array(landmark).reshape((68, 2))
             landmarks.append(landmark)
             bboxes.append([(rect.left(), rect.top()), (rect.right(), rect.bottom())])
-            # landmarks.append(convert_landmarks(rect, shape))
-            # landmark = convert_landmarks(rect, shape)
-            # landmark = np.array(landmark).reshape((-1, 68, 2))
-            # pred = model.predict(landmark)
-            # pred_class = np.argmax(pred)
-            # frame = cv2.rectangle(frame, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 0, 255), 2)
-            # frame = cv2.putText(frame, label_map[pred_class], (rect.left(), rect.top() - 15), 
-            #     cv2.FONT_HERSHEY_SIMPLEX, 1.5, (10, 255, 0), thickness=2)
+
         landmarks = np.array(landmarks)
         bboxes = np.array(bboxes)
         if landmarks.shape[0] != 0:
             preds = model.predict(landmarks)
             preds = np.argmax(preds, axis=1)
-            frame = add_all_emojis(frame, preds, bboxes)
+            frame = add_markings(frame, preds, bboxes, place_emodji=True)
         cv2.imshow('vid', frame)
         #output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
-    # When everything done, release the capture
     cap.release()
     output.release()
     cv2.destroyAllWindows()

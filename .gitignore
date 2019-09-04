@@ -145,7 +145,6 @@ test_img3.jpg
 test_img4.jpg
 shape_predictor_68_face_landmarks.dat
 fer2013.csv
-models
 images
 test
 facial_features
