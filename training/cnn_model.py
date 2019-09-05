@@ -249,7 +249,7 @@ class Emotion_Net:
         self._model.add(Dense(n_classes, activation = 'softmax'))
 
 
-    def train(self, x_train, y_train, x_test, y_test, 
+    def train(self, x_train, y_train,
                     batch_size=16, n_epochs=50, loss_func="categorical_crossentropy", 
                     optim=SGD(lr=0.001), save_best=True, save_best_to="model.hdf5"):
         """Compile and train the model"""
@@ -263,15 +263,22 @@ class Emotion_Net:
         # learning
         if save_best:
             history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
-                        callbacks = [ModelCheckpoint(save_best_to, monitor = "val_acc", save_best_only = True, save_weights_only = True, mode = "auto")], \
-                        epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
+                        callbacks = [ModelCheckpoint(save_best_to, monitor = "val_acc", 
+                                                    save_best_only = True, save_weights_only = True, 
+                                                    mode = "auto")], \
+                        epochs = n_epochs, 
+                        verbose = 1, 
+                        shuffle = True, 
+                        validation_split = 0.15)
         else:
-            history_callback = self._model.fit(x_train, y_train, batch_size = batch_size,  \
-                        epochs = n_epochs, verbose = 1, shuffle = True, validation_data = (x_test, y_test))
+            history_callback = self._model.fit(x_train, y_train, 
+                        batch_size = batch_size,  \
+                        epochs = n_epochs, verbose = 1, 
+                        shuffle = True, validation_split = 0.15)
         return history_callback
 
 
-    def augment_and_train(self, x_train, y_train, x_test, y_test, 
+    def augment_and_train(self, x_train, y_train,
                     batch_size=16, n_epochs=50, loss_func="categorical_crossentropy", 
                     optim=SGD(lr=0.001), save_best=True, save_best_to="model.hdf5"):
         """Compile and train the model"""
@@ -303,14 +310,14 @@ class Emotion_Net:
                         epochs = n_epochs, 
                         verbose = 1, 
                         shuffle = True, 
-                        validation_data = (x_test, y_test))
+                        validation_split = 0.15)
         else:
             history_callback = self._model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size), 
                         steps_per_epoch=len(x_train) // batch_size,  
                         epochs = n_epochs, 
                         verbose = 1, 
                         shuffle = True, 
-                        validation_data = (x_test, y_test))
+                        validation_split = 0.15)
         return history_callback
 
 

@@ -6,6 +6,9 @@ import dlib
 from place_emoji import add_markings
 from utils.utils import convert_landmarks
 
+import sys, os
+from pathlib import Path
+ROOT_DIR = Path(__file__).parents[0]
 
 def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmarks.dat'):
     # visualizer for dlib facial feature localizer
@@ -47,26 +50,27 @@ def features_dlib(predictor_path='face_detector\\shape_predictor_68_face_landmar
 
 
 def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face_landmarks.dat', fullscreen=False):
-    with open('saved_models\\dlib_facial.json', 'r') as json_file:
+    with open('saved_models\\dlib_facial_v2.json', 'r') as json_file:
         model_json = json_file.read()
     model = model_from_json(model_json)
-    model.load_weights('saved_models\\dlib_facial.h5')
+    model.load_weights('saved_models\\dlib_facial_v2.h5')
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
     label_map = {0:'neutral', 1:'angry', 2:'disgust', 3:'fear', 4:'happy', 5:'sad', 6:'surprised'}
 
     cap = cv2.VideoCapture(0)
-    vid_cod = cv2.VideoWriter_fourcc(*'XVID')
 
     fr_prev= None
     fr = True
-    #output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 20.0, (640,480))
     
     if fullscreen:
         cv2.namedWindow("demo",cv2.WINDOW_NORMAL)
         cv2.setWindowProperty("demo",cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-    while(True):
+    frame_width = int(cap.get(3))
+    frame_height = int(cap.get(4))
+    vid_cod = cv2.VideoWriter_fourcc(*'XVID')
+    output = cv2.VideoWriter("videos\\cam_video.mp4", vid_cod, 10.0, (frame_width,frame_height))
+    while(cap.isOpened()):
         ret, frame = cap.read()
         frame_clean = frame.copy()
         if fr:
@@ -96,16 +100,16 @@ def run_facial_classifier(predictor_path='face_detector\\shape_predictor_68_face
             frame = frame_prev
         frame = np.concatenate((frame, frame_clean), axis=1)
         cv2.imshow('demo', frame)
-        #output.write(frame)
+        output.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
     cap.release()
-    #output.release()
+    output.release()
+
     cv2.destroyAllWindows()
 
 
-
 if __name__ == "__main__":
-    run_facial_classifier()
+    run_facial_classifier(fullscreen=True)
     #features_dlib()

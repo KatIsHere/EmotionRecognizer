@@ -1,16 +1,23 @@
 
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from load_pics import load_dataset_csv, load_img, load_dataset_no_face, load_dataset_no_face_custom
-from face_detector import faces_from_database_dnn, find_faces_dnn
 from keras.optimizers import SGD, Adam
-from keras_model import Emotion_Net
 from keras.utils import np_utils
 import numpy as np
 import random
 import pandas as pd
 import cv2
-from prepare_dataset import DataPreprocessor
+from cnn_model import Emotion_Net
+
+import sys, os
+from pathlib import Path
+ROOT_DIR = Path(__file__).parents[1]
+sys.path.append(os.path.abspath(ROOT_DIR))
+
+from data_preprossessing.prepare_dataset import DataPreprocessor
+from face_detector.face_detector import find_faces_dnn
+from utils.utils import load_img
+from utils.load_dataset import load_dataset_and_cut_out_faces, load_dataset_no_face, load_dataset_no_face_custom
 
 label_map = {'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6}
 
@@ -106,7 +113,7 @@ def validate_on_database(csv_filename, model_filename, n_classes, im_shape, labe
         model = Emotion_Net()
         model.load_model(model_filename +".json")
         model.load_weights(model_filename + ".h5")
-        x_val, y_val = load_dataset_csv(csv_filename, new_size=im_shape, greyscale=gray, label_map = label_map)
+        x_val, y_val = load_dataset_and_cut_out_faces(csv_filename, new_size=im_shape, greyscale=gray, label_map = label_map)
         x_val = np.array(x_val)
         y_val = np.array(y_val, dtype='int32')
         x_val = x_val.astype('float32')
@@ -134,7 +141,7 @@ def train_keras_model(dataset_csv,
         gray = True if channels==1 else False
         im_rows, im_cols = im_shape
         if detect_face:
-                x_data, y_data = load_dataset_csv(dataset_csv, label_map, new_size=(im_rows, im_cols), greyscale=gray)
+                x_data, y_data = load_dataset_and_cut_out_faces(dataset_csv, label_map, new_size=(im_rows, im_cols), greyscale=gray)
         else:
                 # neutral 2397
                 # happiness 3735        # TODO: clip happiness
@@ -151,7 +158,7 @@ def train_keras_model(dataset_csv,
         input_shape = (im_rows, im_cols, channels)
         x_data, y_data, n_classes = normalize_data(x_data, y_data, im_rows, im_cols, channels)
 
-        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.1, random_state=random.seed())
+        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.15, random_state=random.seed())
 
         Model = Emotion_Net()
 
@@ -161,31 +168,28 @@ def train_keras_model(dataset_csv,
         else:
                 Model.init_model(input_shape, n_classes, arc=arc)
         if augment:
-                history_call = Model.augment_and_train(x_train, y_train, x_test, y_test, 
-                        save_best_to=model_folder + save_model_id + "model.h5", \
+                history_call = Model.augment_and_train(x_train, y_train,
+                        save_best_to = model_folder + save_model_id + "model.h5", \
                         batch_size=batch_size, n_epochs=epocs, optim=Adam())
         else:
-                history_call = Model.train(x_train, y_train, x_test, y_test, 
-                        save_best_to=model_folder + save_model_id + "model.h5", \
+                history_call = Model.train(x_train, y_train, 
+                        save_best=False,
+                        save_best_to = model_folder + save_model_id + "model.h5", \
                         batch_size=batch_size, n_epochs=epocs, optim=Adam())
-        if plot_metrix:
-                plt.subplot(2,2,1)
-                plt.title('training loss')
-                plt.plot(history_call.history['loss'])
-
-                plt.subplot(2,2,2)
-                plt.title('training accuracy')
-                plt.plot(history_call.history['acc'])
-
-                plt.subplot(2,2,3)
-                plt.title('testing loss')
-                plt.plot(history_call.history['val_loss'])
-
-                plt.subplot(2,2,4)
-                plt.title('testing accuracy')
-                plt.plot(history_call.history['val_acc'])
-
         Model.evaluate_accur(x_test, y_test)
+        if plot_metrix:
+                plt.subplot(2,1,1)
+                plt.title('Loss')
+                plt.plot(history_call.history['loss'], label='training loss')
+                plt.plot(history_call.history['val_loss'], label='testing loss')
+
+                plt.subplot(2,1,2)
+                plt.title('Accuracy')
+                plt.plot(history_call.history['acc'], label='training accuracy')
+                plt.plot(history_call.history['val_acc'], label='training accuracy')
+                
+                plt.legend()
+
         Model.save_model(model_folder + save_model_id + "model.json")
         Model.save_weights(model_folder + save_model_id + "model.h5")
         return n_classes
@@ -197,26 +201,27 @@ if __name__ == "__main__":
     #open_test_im('data\\fer2013.csv')
     #predict_and_vizualize('data\\dataset.csv')
     
-    (im_rows, im_cols) = (96, 96)
+    (im_rows, im_cols) = (144, 144)
     channels = 3
     n_classes = 5
-    n_classes = train_keras_model('data\\fer2013_filtered.csv', 
+    n_classes = train_keras_model(os.path.join(ROOT_DIR, 'data\\dataset.csv'), 
                                 im_shape=(im_rows, im_cols), 
                                 channels=channels, 
-                                epocs=5, 
+                                model_folder = os.path.join(ROOT_DIR, 'saved_models\\'),
+                                epocs=60, 
                                 batch_size=32,
                                 augment=False, 
-                                detect_face=False,
-                                load_weights=True, 
-                                model_id='ins_resnet_v3', 
-                                save_model_id='ins_resnet_v3',
+                                detect_face=True,
+                                load_weights=False, 
+                                model_id='resnet_', 
+                                save_model_id='resnet_',
                                 plot_metrix=True, 
-                                arc=3)    
+                                arc=2)    
     
-    print("TESTING COMBINED")
-    validate_on_database("data\\dataset.csv", "models\\ins_resnet_v3model", 
-                n_classes, im_shape = (im_rows, im_cols), channels=channels, 
-                label_map={'anger':2, 'surprise':3, 'neutral':0, 'happiness':1, 'sadness':4})
+#     print("TESTING COMBINED")
+#     validate_on_database("data\\dataset.csv", "models\\ins_resnet_v3model", 
+#                 n_classes, im_shape = (im_rows, im_cols), channels=channels, 
+#                 label_map={'anger':2, 'surprise':3, 'neutral':0, 'happiness':1, 'sadness':4})
 #     print("Testing on facesdb")
 #     validate_on_database("data\\dataset_facesdb.csv", "models\\combined_mobnet_model", 
 #                 n_classes, im_shape = (im_rows, im_cols), channels=channels)

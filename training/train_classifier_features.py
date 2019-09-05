@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parents[1]
 sys.path.append(os.path.abspath(ROOT_DIR))
-from utils.load_dataset import load_dataset_with_facial_features
+from utils.load_dataset import load_dataset_with_facial_features, prepare_kadle_dataset_with_dlib
 
 
 class Combined_Facial_Net:
@@ -191,18 +191,17 @@ class Combined_Facial_Net:
 
 
 def plot_loss(history):    
-    plt.subplot(2,2,1)
-    plt.title('training loss')
-    plt.plot(history.history['loss'])
-    plt.subplot(2,2,2)
-    plt.title('training accuracy')
-    plt.plot(history.history['acc'])
-    plt.subplot(2,2,3)
-    plt.title('testing loss')
-    plt.plot(history.history['val_loss'])
-    plt.subplot(2,2,4)
-    plt.title('testing accuracy')
-    plt.plot(history.history['val_acc'])
+            plt.subplot(2,1,1)
+            plt.title('training loss')
+            plt.plot(history.history['loss'])
+            plt.title('testing loss')
+            plt.plot(history.history['val_loss'])
+
+            plt.subplot(2,1,2)
+            plt.title('training accuracy')
+            plt.plot(history.history['acc'])
+            plt.title('testing accuracy')
+            plt.plot(history.history['val_acc'])
 
 
 def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
@@ -273,12 +272,12 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
 
 
 if __name__=='__main__':
-    print(os.path.abspath(os.path.join('..', 'utils')))
-    history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
-                                                batch_size=512, n_epochs=3000, load=False)
-    #history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
-    #                                batch_size=64, new_size=(96, 96), 
-    #                                n_epochs=300, model_id='facial_comb_')
-    plot_loss(history_callback)
-    plt.show()
+    # print(os.path.abspath(os.path.join('..', 'utils')))
+    # history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+    #                                             batch_size=512, n_epochs=3000, load=False)
+    history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+                                    batch_size=64, new_size=(96, 96), 
+                                    n_epochs=300, model_id='facial_comb_')
+    #plot_loss(history_callback)
+    #plt.show()
     

@@ -34,52 +34,32 @@ def load_dataset_and_cut_out_faces(csv_filename, label_map, greyscale=True, new_
     return x_data, y_data
 
 
-def load_dataset_with_facial_features(csv_filename, label_map, new_size=None, include_images=False):
+def load_dataset_with_facial_features(csv_filename, label_map, new_size=None, include_images=False, include_augmented=True):
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     images = []
     for index, row in df.iterrows():
-        landmarks = np.fromstring(row['features'], 'float32', sep=' ').reshape(68, 2)
-        x_data.append(landmarks)
-        y_data.append(label_map[row['label']])
-
-        if type(row['random_augmentation']) is str:
-            landmarks_augm = np.fromstring(row['random_augmentation'], 'float32', sep=' ')
-            x_data.append(np.reshape(landmarks_augm, (68, 2)))
+        landmarks = np.fromstring(row['features'], 'float32', sep=' ')
+        if landmarks.shape[0] == 68*2:
+            landmarks = np.reshape(landmarks, (68, 2))
+            x_data.append(landmarks)
             y_data.append(label_map[row['label']])
 
-        if include_images:
-            im = load_img(row['file'], True, None)
-            im = im[row['y0']:row['y1'], row['x0']:row['x1']]
-            if new_size is not None:
-                im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
-            images.append(im)
-            if type(row['random_augmentation']) is str:
+            if include_augmented and type(row['random_augmentation']) is str:
+                landmarks_augm = np.fromstring(row['random_augmentation'], 'float32', sep=' ')
+                x_data.append(np.reshape(landmarks_augm, (68, 2)))
+                y_data.append(label_map[row['label']])
+
+            if include_images:
+                im = load_img(row['file'], True, None)
+                im = im[row['y0']:row['y1'], row['x0']:row['x1']]
+                if new_size is not None:
+                    im = cv2.resize(im, new_size, interpolation = cv2.INTER_AREA)
                 images.append(im)
+                if include_augmented and type(row['random_augmentation']) is str:
+                    images.append(im)
     #x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return  np.array(x_data),  np.array(y_data), np.array(images)
-
-
-def prepare_dataset_with_dlib(csv_filename, label_map):
-    df = pd.read_csv(csv_filename)
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor(os.path.join(ROOT_DIR, 'face_detector\\shape_predictor_68_face_landmarks.dat'))
-    x_data, y_data = [], []
-    features = []
-    for index, row in df.iterrows():
-        img = cv2.imread(row['file'])
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rects = detector(img, 1)
-        for k, rect in enumerate(rects):
-            shape = predictor(img, rect)
-            landmarks = convert_landmarks(rect, shape)
-        x_data.append(landmarks)
-        y_data.append(label_map[row['label']])
-        features.append(' '.join(str(item) for innerlist in landmarks for item in innerlist))
-    df = df.assign(features=features)
-    df.to_csv(csv_filename)
-    x_data, y_data = shuffle(x_data, y_data, random_state=random.seed())
-    return  np.array(x_data),  np.array(y_data)
 
 
 def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=False):
@@ -87,7 +67,7 @@ def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=Fal
     df = pd.read_csv(csv_filename)
     x_data, y_data = [], []
     for index, row in df.iterrows():
-        if row['emotion'] in label_map:
+        if row['label'] in label_map:
             im = np.fromstring(row['pixels'], sep=' ').astype('uint8')
             #im = np.array([int(x) for x in row['pixels'].split(' ')]).astype('uint8')
             im = np.resize(im, (48, 48))
@@ -96,10 +76,10 @@ def load_dataset_no_face(csv_filename, label_map, new_size = None, greyscale=Fal
             if not greyscale:
                 im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
             x_data.append(im)
-            y_data.append(label_map[row['emotion']])
-            if row['emotion'] in augmented_em:  # augment data that is not represented enough
+            y_data.append(label_map[row['label']])
+            if row['label'] in augmented_em:  # augment data that is not represented enough
                 x_data.append(cv2.flip(im, 0))
-                y_data.append(label_map[row['emotion']])
+                y_data.append(label_map[row['label']])
     x_data, y_data = shuffle(x_data, y_data, random_state=42)
     return x_data, y_data
 

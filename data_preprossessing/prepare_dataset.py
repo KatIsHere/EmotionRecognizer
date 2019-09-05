@@ -385,6 +385,27 @@ def prepare_dataset_with_dlib(csv_filename):
     df.to_csv(csv_filename)
 
 
+def prepare_kadle_dataset_with_dlib(csv_filename, label_map):
+    df = pd.read_csv(csv_filename)
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(os.path.join(ROOT_DIR, 'face_detector\\shape_predictor_68_face_landmarks.dat'))
+    x_data, y_data = [], []
+    features = []
+    for index, row in df.iterrows():
+        img = np.fromstring(row['pixels'], sep=' ').astype('uint8')
+        img = np.resize(img, (48, 48))
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        rects = detector(img, 1)
+        for k, rect in enumerate(rects):
+                shape = predictor(img, rect)
+                landmarks = convert_landmarks(rect, shape)
+        x_data.append(landmarks)
+        y_data.append(label_map[row['label']])
+        features.append(' '.join(str(item) for innerlist in landmarks for item in innerlist))
+    df = df.assign(features=features)
+    df.to_csv(csv_filename)
+    x_data, y_data = shuffle(x_data, y_data, random_state=random.seed())
+    return  np.array(x_data),  np.array(y_data)
 
 if __name__ == "__main__":
     random.seed()
