@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parents[1]
 sys.path.append(os.path.abspath(ROOT_DIR))
-from utils.load_dataset import load_dataset_with_facial_features, prepare_kadle_dataset_with_dlib
+from utils.load_dataset import load_dataset_with_facial_features
 
 
 class Combined_Facial_Net:
@@ -190,22 +190,46 @@ class Combined_Facial_Net:
             json_file.write(model_json)
 
 
+    def evaluate_acc(self, imgs, features, labels):
+        score =self.__model.evaluate([imgs, features], labels, verbose = 0)
+
+        print("Test score :", score[0])
+        print("Test accuracy :", score[1], "\n")
+
+def create_validation(features, labels, images, val_perc = 0.1):
+    random.seed()
+    n_samples = labels.shape[0]
+    n_val = int(n_samples * val_perc)
+    images_val, features_val, labels_val = [], [], []
+    for i in range(n_val):
+        N = random.randint(0, n_samples - 1)
+        images_val.append(images[N]) #np.delete(a, index)
+        features_val.append(features[N]) #np.delete(a, index)
+        labels_val.append(labels[N]) #np.delete(a, index)
+        images = np.delete(images, N)
+        features = np.delete(features, N) 
+        labels = np.delete(labels, N)
+        n_samples -= 1
+    return features, labels, images, np.array(features_val), np.array(labels_val), np.array(images_val)
+
+
 def plot_loss(history):    
             plt.subplot(2,1,1)
-            plt.title('training loss')
-            plt.plot(history.history['loss'])
-            plt.title('testing loss')
-            plt.plot(history.history['val_loss'])
-
+            plt.title('Loss')
+            plt.plot(history.history['loss'], label='Training loss')
+            plt.plot(history.history['val_loss'], label='Testing loss')
+            plt.legend()
             plt.subplot(2,1,2)
-            plt.title('training accuracy')
-            plt.plot(history.history['acc'])
-            plt.title('testing accuracy')
-            plt.plot(history.history['val_acc'])
+            plt.title('Accuracy')
+            plt.plot(history.history['acc'], label='Training accuracy ')
+            plt.plot(history.history['val_acc'], label='Testing accuracy')
+            plt.legend()
 
 
 def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch_size=32, load=False, model_id=''):
-    features, labels, images = load_dataset_with_facial_features(csv_filename, include_images=True, new_size=new_size,
+    features, labels, images = load_dataset_with_facial_features(csv_filename, include_images=True, 
+                    new_size=new_size, 
+                    include_augmented=False,
                     label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
     #x_data = np.reshape(x_data, (-1, 68, 2, 1))
     feature_shape = features.shape[1:]
@@ -213,6 +237,8 @@ def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch
     images = np.reshape(images, (-1, new_size[0], new_size[1], 1))
     n_classes = np.unique(labels).shape[0]
     labels = np_utils.to_categorical(labels, n_classes)
+    #features, labels, images, features_val, labels_val, images_val = create_validation(features, labels, images, val_perc=0.15)
+    
     if load:
         model = Combined_Facial_Net(json_filename=os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.json'), 
                                     h5_filename=os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.h5'))
@@ -221,7 +247,7 @@ def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch
                                     input_features_shape = feature_shape, 
                                     num_classes = n_classes)
     history = model.train_combined(images, features, labels, 
-                                    optim='adam',
+                                    optim=Adam(lr=0.0001),
                                     n_epochs=n_epochs, 
                                     batch_size=batch_size, 
                                     save_best_to=None)
@@ -229,11 +255,13 @@ def classify_emotions_combined_model(csv_filename, new_size, n_epochs=100, batch
     model.save_weights(os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.h5'))
     model.save_model(os.path.join(ROOT_DIR,'saved_models\\' + model_id + 'model.json'))
 
+    #model.evaluate_acc(images_val, features_val, labels_val)
+
     return history
 
 
 def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load = False):
-    x_data, y_data, _ = load_dataset_with_facial_features(csv_filename,
+    x_data, y_data, _ = load_dataset_with_facial_features(csv_filename, 
                     label_map={'neutral' : 0, 'anger' : 1, 'disgust' : 2, 'fear':3, 'happy':4, 'sadness':5, 'surprise':6})
     #x_data = np.reshape(x_data, (-1, 68, 2, 1))
     n_classes = np.unique(y_data).shape[0]
@@ -270,14 +298,14 @@ def classify_emotions_features(csv_filename, n_epochs=100, batch_size=32, load =
     return history_callback
 
 
+import seaborn as sns
 
 if __name__=='__main__':
-    # print(os.path.abspath(os.path.join('..', 'utils')))
-    # history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
-    #                                             batch_size=512, n_epochs=3000, load=False)
-    history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
-                                    batch_size=64, new_size=(96, 96), 
-                                    n_epochs=300, model_id='facial_comb_')
+    history_callback = classify_emotions_features(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+                                                 batch_size=512, n_epochs=3000, load=False)
+    #history_callback = classify_emotions_combined_model(os.path.join(ROOT_DIR,'data\\dataset.csv'), 
+    #                                batch_size=64, new_size=(192, 192), 
+    #                                n_epochs=100, model_id='facial_comb_')
     #plot_loss(history_callback)
-    #plt.show()
+    plt.show()
     
